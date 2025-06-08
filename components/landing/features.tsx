@@ -14,11 +14,13 @@ import {
 } from "@/components/ui/card"
 import { motion } from "framer-motion"
 import {
-  AppWindow,
-  Database,
-  DollarSign,
+  Film,
+  Users,
+  Zap,
   LucideIcon,
-  Shield
+  Heart,
+  Sparkles,
+  Globe
 } from "lucide-react"
 
 interface FeatureProps {
@@ -29,24 +31,34 @@ interface FeatureProps {
 
 const features: FeatureProps[] = [
   {
-    title: "Frontend",
-    description: "Next.js, Tailwind, Shadcn, Framer Motion",
-    icon: AppWindow
+    title: "Swipe Together",
+    description: "Create sessions and swipe through movies with friends in real-time",
+    icon: Users
   },
   {
-    title: "Backend",
-    description: "Postgres, Supabase, Drizzle ORM, Server Actions",
-    icon: Database
+    title: "Instant Matches",
+    description: "Get notified the moment everyone swipes right on the same movie",
+    icon: Zap
   },
   {
-    title: "Auth",
-    description: "Clerk",
-    icon: Shield
+    title: "Smart Recommendations",
+    description: "AI-powered suggestions based on your group's preferences",
+    icon: Sparkles
   },
   {
-    title: "Payments",
-    description: "Stripe",
-    icon: DollarSign
+    title: "Multiple Sources",
+    description: "Connect your Letterboxd, Plex, and streaming services",
+    icon: Globe
+  },
+  {
+    title: "Movie Database",
+    description: "Access millions of movies with ratings, trailers, and more",
+    icon: Film
+  },
+  {
+    title: "Save Favorites",
+    description: "Build watchlists and track movies you've loved",
+    icon: Heart
   }
 ]
 
@@ -75,8 +87,8 @@ export const FeaturesSection = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          <h2 className="mb-12 text-center text-4xl font-bold">Tech Stack</h2>
-          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <h2 className="mb-12 text-center text-4xl font-bold">How PickFlick Works</h2>
+          <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
               <FeatureCard key={index} {...feature} />
             ))}

@@ -9,7 +9,7 @@ This client component provides the hero section for the landing page.
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
-import { ChevronRight, Rocket } from "lucide-react"
+import { ChevronRight, Film, Users, Heart } from "lucide-react"
 import Link from "next/link"
 import posthog from "posthog-js"
 import AnimatedGradientText from "../magicui/animated-gradient-text"
@@ -28,15 +28,15 @@ export const HeroSection = () => {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="flex items-center justify-center"
       >
-        <Link href="https://github.com/mckaywrigley/mckays-app-template">
+        <Link href="/signup">
           <AnimatedGradientText>
-            🚀 <hr className="mx-2 h-4 w-px shrink-0 bg-gray-300" />
+            🎬 <hr className="mx-2 h-4 w-px shrink-0 bg-gray-300" />
             <span
               className={cn(
                 `animate-gradient inline bg-gradient-to-r from-[#ffaa40] via-[#9c40ff] to-[#ffaa40] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent`
               )}
             >
-              View the code on GitHub
+              Find your next movie in seconds
             </span>
             <ChevronRight className="ml-1 size-3 transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
           </AnimatedGradientText>
@@ -55,7 +55,7 @@ export const HeroSection = () => {
           transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
           className="text-balance text-6xl font-bold"
         >
-          Save time and start building.
+          Never argue about movie night again.
         </motion.div>
 
         <motion.div
@@ -64,8 +64,7 @@ export const HeroSection = () => {
           transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
           className="max-w-xl text-balance text-xl"
         >
-          Use Mckay's app template to save time and get started with your next
-          project.
+          Swipe through movies with friends and instantly find the perfect film everyone wants to watch.
         </motion.div>
 
         <motion.div
@@ -74,12 +73,12 @@ export const HeroSection = () => {
           transition={{ duration: 0.6, delay: 0.8, ease: "easeOut" }}
         >
           <Link
-            href="https://github.com/mckaywrigley/mckays-app-template"
+            href="/signup"
             onClick={handleGetStartedClick}
           >
             <Button className="bg-blue-500 text-lg hover:bg-blue-600">
-              <Rocket className="mr-2 size-5" />
-              Get Started &rarr;
+              <Film className="mr-2 size-5" />
+              Start Swiping &rarr;
             </Button>
           </Link>
         </motion.div>
@@ -91,12 +90,24 @@ export const HeroSection = () => {
         transition={{ duration: 1, delay: 1, ease: "easeOut" }}
         className="mx-auto mt-20 flex w-full max-w-screen-lg items-center justify-center rounded-lg border shadow-lg"
       >
-        <HeroVideoDialog
-          animationStyle="top-in-bottom-out"
-          videoSrc="https://www.youtube.com/embed/9yS0dR0kP-s"
-          thumbnailSrc="hero.png"
-          thumbnailAlt="Hero Video"
-        />
+        <div className="relative w-full">
+          <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent rounded-lg" />
+          <img
+            src="/hero.png"
+            alt="PickFlick App Preview"
+            className="w-full h-auto rounded-lg"
+          />
+          <div className="absolute bottom-8 left-8 flex gap-4">
+            <div className="flex items-center gap-2 bg-background/90 backdrop-blur px-4 py-2 rounded-full">
+              <Users className="size-4" />
+              <span className="text-sm font-medium">Swipe with friends</span>
+            </div>
+            <div className="flex items-center gap-2 bg-background/90 backdrop-blur px-4 py-2 rounded-full">
+              <Heart className="size-4" />
+              <span className="text-sm font-medium">Find matches instantly</span>
+            </div>
+          </div>
+        </div>
       </motion.div>
     </div>
   )

@@ -14,7 +14,7 @@ import {
   SignUpButton,
   UserButton
 } from "@clerk/nextjs"
-import { Menu, Rocket, X } from "lucide-react"
+import { Menu, Film, X } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { ThemeSwitcher } from "./utilities/theme-switcher"
@@ -25,7 +25,7 @@ const navLinks = [
   { href: "/contact", label: "Contact" }
 ]
 
-const signedInLinks = [{ href: "/todo", label: "Todo" }]
+const signedInLinks = [{ href: "/sessions", label: "Sessions" }]
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -54,9 +54,9 @@ export default function Header() {
     >
       <div className="mx-auto flex max-w-screen-2xl items-center justify-between p-4">
         <div className="flex items-center space-x-2 hover:cursor-pointer hover:opacity-80">
-          <Rocket className="size-6" />
+          <Film className="size-6" />
           <Link href="/" className="text-xl font-bold">
-            Mckay's App Template
+            PickFlick
           </Link>
         </div>
 
@@ -93,7 +93,7 @@ export default function Header() {
             </SignInButton>
 
             <SignUpButton>
-              <Button className="bg-blue-500 hover:bg-blue-600">Sign Up</Button>
+              <Button className="bg-blue-500 hover:bg-blue-600">Start Swiping</Button>
             </SignUpButton>
           </SignedOut>
 

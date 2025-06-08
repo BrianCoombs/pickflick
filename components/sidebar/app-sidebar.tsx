@@ -7,16 +7,14 @@ This client component provides the sidebar for the app.
 "use client"
 
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal
+  Film,
+  Users,
+  Heart,
+  History,
+  Settings,
+  Sparkles,
+  Play,
+  UserPlus
 } from "lucide-react"
 import * as React from "react"
 
@@ -35,76 +33,74 @@ import { TeamSwitcher } from "./team-switcher"
 // Sample data
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg"
+    name: "Movie Lover",
+    email: "user@pickflick.app",
+    avatar: "/avatars/user.jpg"
   },
   teams: [
     {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise"
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup"
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free"
+      name: "PickFlick",
+      logo: Film,
+      plan: "Premium"
     }
   ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
+      title: "Sessions",
+      url: "/sessions",
+      icon: Play,
       isActive: true,
       items: [
-        { title: "History", url: "#" },
-        { title: "Starred", url: "#" },
-        { title: "Settings", url: "#" }
+        { title: "New Session", url: "/sessions/new" },
+        { title: "Active Sessions", url: "/sessions/active" },
+        { title: "Join Session", url: "/sessions/join" }
       ]
     },
     {
-      title: "Models",
-      url: "#",
-      icon: Bot,
+      title: "Friends",
+      url: "/friends",
+      icon: Users,
       items: [
-        { title: "Genesis", url: "#" },
-        { title: "Explorer", url: "#" },
-        { title: "Quantum", url: "#" }
+        { title: "My Friends", url: "/friends" },
+        { title: "Add Friends", url: "/friends/add" },
+        { title: "Friend Requests", url: "/friends/requests" }
       ]
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
+      title: "Movies",
+      url: "/movies",
+      icon: Film,
       items: [
-        { title: "Introduction", url: "#" },
-        { title: "Get Started", url: "#" },
-        { title: "Tutorials", url: "#" },
-        { title: "Changelog", url: "#" }
+        { title: "Discover", url: "/movies/discover" },
+        { title: "My Watchlist", url: "/movies/watchlist" },
+        { title: "Liked Movies", url: "/movies/liked" }
+      ]
+    },
+    {
+      title: "History",
+      url: "/history",
+      icon: History,
+      items: [
+        { title: "Recent Matches", url: "/history/matches" },
+        { title: "Watch History", url: "/history/watched" },
+        { title: "Session History", url: "/history/sessions" }
       ]
     },
     {
       title: "Settings",
-      url: "#",
-      icon: Settings2,
+      url: "/settings",
+      icon: Settings,
       items: [
-        { title: "General", url: "#" },
-        { title: "Team", url: "#" },
-        { title: "Billing", url: "#" },
-        { title: "Limits", url: "#" }
+        { title: "Profile", url: "/settings/profile" },
+        { title: "Preferences", url: "/settings/preferences" },
+        { title: "Connected Apps", url: "/settings/apps" }
       ]
     }
   ],
   projects: [
-    { name: "Design Engineering", url: "#", icon: Frame },
-    { name: "Sales & Marketing", url: "#", icon: PieChart },
-    { name: "Travel", url: "#", icon: Map }
+    { name: "Weekend Movie Night", url: "#", icon: Sparkles },
+    { name: "Date Night Picks", url: "#", icon: Heart },
+    { name: "Friends Group", url: "#", icon: UserPlus }
   ]
 }
 
