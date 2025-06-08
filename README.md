@@ -1,38 +1,31 @@
-# Mckay's App Template
+# PickFlick - Movie Swiping App
 
-This is a full-stack app template for courses on [Takeoff](https://JoinTakeoff.com/).
+A collaborative movie selection app where friends can swipe through movies together and find matches, similar to Tinder but for movies.
 
-## Sponsors
+## Features
 
-If you are interested in sponsoring my repos, please contact me at [ads@takeoffai.org](mailto:ads@takeoffai.org).
-
-Or sponsor me directly on [GitHub Sponsors](https://github.com/sponsors/mckaywrigley).
+- **Real-time Matching**: Swipe through movies with friends and get instant notifications when everyone matches
+- **Multiple Data Sources**: Integrates with TMDb, Letterboxd, and Plex for comprehensive movie data
+- **Smart Recommendations**: AI-powered movie suggestions based on group preferences
+- **Social Sessions**: Create movie nights with friends and find the perfect film together
 
 ## Tech Stack
 
-- IDE: [Cursor](https://www.cursor.com/)
-- AI Tools: [V0](https://v0.dev/), [Perplexity](https://www.perplexity.com/)
-- Frontend: [Next.js](https://nextjs.org/docs), [Tailwind](https://tailwindcss.com/docs/guides/nextjs), [Shadcn](https://ui.shadcn.com/docs/installation), [Framer Motion](https://www.framer.com/motion/introduction/)
-- Backend: [PostgreSQL](https://www.postgresql.org/about/), [Supabase](https://supabase.com/), [Drizzle](https://orm.drizzle.team/docs/get-started-postgresql), [Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
-- Auth: [Clerk](https://clerk.com/)
-- Payments: [Stripe](https://stripe.com/)
-- Analytics: [PostHog](https://posthog.com/)
+- **Frontend**: Next.js 15, React, Tailwind CSS, shadcn/ui
+- **Backend**: Next.js API Routes, PostgreSQL, Drizzle ORM
+- **Real-time**: Supabase Realtime
+- **Authentication**: Clerk
+- **APIs**: TMDb, Letterboxd, Plex, OMDb
 
 ## Prerequisites
 
-You will need accounts for the following services.
+You will need accounts for the following services:
 
-They all have free plans that you can use to get started.
-
-- Create a [Cursor](https://www.cursor.com/) account
-- Create a [GitHub](https://github.com/) account
-- Create a [Supabase](https://supabase.com/) account
-- Create a [Clerk](https://clerk.com/) account
-- Create a [Stripe](https://stripe.com/) account
-- Create a [PostHog](https://posthog.com/) account
-- Create a [Vercel](https://vercel.com/) account
-
-You will likely not need paid plans unless you are building a business.
+- [Supabase](https://supabase.com/) - Database and real-time features
+- [Clerk](https://clerk.com/) - Authentication
+- [TMDb](https://www.themoviedb.org/settings/api) - Movie data API
+- [Letterboxd](https://letterboxd.com/api-beta/) - Movie lists and ratings
+- [OMDb](http://www.omdbapi.com/apikey.aspx) - Additional movie ratings (optional)
 
 ## Environment Variables
 
@@ -46,21 +39,26 @@ CLERK_SECRET_KEY=
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup
 
-# Payments (Stripe)
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-NEXT_PUBLIC_STRIPE_PORTAL_LINK=
-NEXT_PUBLIC_STRIPE_PAYMENT_LINK_YEARLY=
-NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY=
+# Movie APIs
+TMDB_API_KEY=
+TMDB_API_READ_ACCESS_TOKEN=
+LETTERBOXD_API_KEY=
+LETTERBOXD_API_SECRET=
+OMDB_API_KEY=
 
 # Analytics (PostHog)
 NEXT_PUBLIC_POSTHOG_KEY=
 NEXT_PUBLIC_POSTHOG_HOST=
 ```
 
-## Setup
+## Getting Started
 
 1. Clone the repository
-2. Copy `.env.example` to `.env.local` and fill in the environment variables from above
-3. Run `npm install` to install dependencies
-4. Run `npm run dev` to run the app locally
+2. Copy `.env.example` to `.env.local` and fill in your API keys
+3. Install dependencies: `npm install`
+4. Push database schema: `npx drizzle-kit push`
+5. Run development server: `npm run dev`
+
+## Development
+
+See [tasks/todo.md](tasks/todo.md) for the development plan and current progress.
