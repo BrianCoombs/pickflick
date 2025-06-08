@@ -1,5 +1,21 @@
 # Movie Swipe App - Development Plan
 
+## Testing Instructions
+
+### Quick Test Setup
+1. Get a TMDb API key from https://www.themoviedb.org/settings/api
+2. Set up Clerk auth at https://dashboard.clerk.com/
+3. Create a Supabase project at https://supabase.com/
+4. Copy `.env.example` to `.env.local` and fill in your keys
+5. Run: `npm install && npx drizzle-kit push && npm run dev`
+6. Visit http://localhost:3000
+
+### How to Test Matching
+- **Solo**: Create a session and swipe right - instant matches!
+- **With Friends**: Use two browsers, create/join same session, both swipe right to match
+
+See SETUP.md for detailed instructions.
+
 ## Overview
 A collaborative movie selection app where friends can swipe through movies together and find matches, similar to Tinder but for movies. The app integrates with multiple movie databases and personal libraries to create a shared movie pool.
 
