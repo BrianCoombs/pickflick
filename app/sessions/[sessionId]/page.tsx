@@ -7,9 +7,9 @@ import SwipeInterface from "./_components/swipe-interface"
 import { MovieService } from "@/lib/api/movie-service"
 
 interface SessionPageProps {
-  params: {
+  params: Promise<{
     sessionId: string
-  }
+  }>
 }
 
 export default async function SessionPage({ params }: SessionPageProps) {
@@ -19,11 +19,13 @@ export default async function SessionPage({ params }: SessionPageProps) {
     redirect("/login")
   }
 
+  const { sessionId } = await params
+
   // Get session details
   const [session] = await db
     .select()
     .from(movieSessions)
-    .where(eq(movieSessions.id, params.sessionId))
+    .where(eq(movieSessions.id, sessionId))
     .limit(1)
 
   if (!session) {
@@ -37,7 +39,7 @@ export default async function SessionPage({ params }: SessionPageProps) {
 
   // Check if session has already matched
   if (session.status === "completed" && session.matchedMovieId) {
-    redirect(`/sessions/${params.sessionId}/match`)
+    redirect(`/sessions/${sessionId}/match`)
   }
 
   // Generate movie pool
@@ -51,7 +53,7 @@ export default async function SessionPage({ params }: SessionPageProps) {
   return (
     <div className="flex h-screen flex-col">
       <SwipeInterface
-        sessionId={params.sessionId}
+        sessionId={sessionId}
         movies={movies}
         participantCount={session.userIds.length}
       />

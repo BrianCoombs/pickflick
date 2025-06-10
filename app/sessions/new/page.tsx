@@ -61,13 +61,13 @@ export default function NewSessionPage() {
 
       const result = await createMovieSession([], preferences)
 
-      if (result.success && result.data) {
+      if (result.isSuccess && result.data) {
         toast({
           title: "Session created!",
-          description: `Session code: ${result.data.id.slice(0, 8)}`,
+          description: `Session code: ${result.data.sessionId.slice(0, 8)}`,
           duration: 10000 // Show for 10 seconds
         })
-        router.push(`/sessions/${result.data.id}`)
+        router.push(`/sessions/${result.data.sessionId}`)
       } else {
         throw new Error(result.message || "Failed to create session")
       }

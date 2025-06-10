@@ -38,7 +38,7 @@ export default function JoinSessionPage() {
     try {
       const result = await joinMovieSession(sessionCode.trim())
 
-      if (result.success) {
+      if (result.isSuccess) {
         toast({
           title: "Joined session!",
           description: "Let's start swiping"

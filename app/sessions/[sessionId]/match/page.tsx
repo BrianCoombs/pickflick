@@ -18,9 +18,9 @@ import { Calendar, Clock, ExternalLink, Play, Star, Users } from "lucide-react"
 import Link from "next/link"
 
 interface MatchPageProps {
-  params: {
+  params: Promise<{
     sessionId: string
-  }
+  }>
 }
 
 export default async function MatchPage({ params }: MatchPageProps) {
@@ -30,11 +30,13 @@ export default async function MatchPage({ params }: MatchPageProps) {
     redirect("/login")
   }
 
+  const { sessionId } = await params
+
   // Get session details
   const [session] = await db
     .select()
     .from(movieSessions)
-    .where(eq(movieSessions.id, params.sessionId))
+    .where(eq(movieSessions.id, sessionId))
     .limit(1)
 
   if (!session || !session.matchedMovieId) {

@@ -66,7 +66,9 @@ export class MovieService {
         const ratings = OMDbAPI.parseRatings(omdbMovie)
 
         enrichedMovie.enrichedRatings = {
-          ...enrichedMovie.enrichedRatings,
+          tmdb:
+            enrichedMovie.enrichedRatings?.tmdb ||
+            `${tmdbMovie.vote_average}/10`,
           ...ratings
         }
       } catch (error) {

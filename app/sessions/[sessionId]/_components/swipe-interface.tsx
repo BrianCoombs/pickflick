@@ -44,7 +44,7 @@ export default function SwipeInterface({
         swipeDirection
       )
 
-      if (result.success && result.data?.matched) {
+      if (result.isSuccess && result.data?.matched) {
         toast({
           title: "It's a match! 🎬",
           description: "Everyone wants to watch this movie!"
@@ -54,7 +54,7 @@ export default function SwipeInterface({
         setTimeout(() => {
           router.push(`/sessions/${sessionId}/match`)
         }, 1000)
-      } else if (result.success) {
+      } else if (result.isSuccess) {
         // Move to next movie
         if (hasMoreMovies) {
           setTimeout(() => {

@@ -4,17 +4,17 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/db/db"
 import { movieSessions, swipes, friendships, matchHistory } from "@/db/schema"
 import { and, eq, or, desc, sql } from "drizzle-orm"
-import { ActionResponse } from "@/types/server-action-types"
+import { ActionState } from "@/types/server-action-types"
 import { revalidatePath } from "next/cache"
 
 export async function createMovieSession(
   userIds: string[],
   preferences?: any
-): Promise<ActionResponse> {
+): Promise<ActionState<{ sessionId: string }>> {
   try {
     const { userId } = await auth()
     if (!userId) {
-      return { success: false, message: "Unauthorized" }
+      return { isSuccess: false, message: "Unauthorized" }
     }
 
     // Ensure the host is included in the session
@@ -31,20 +31,20 @@ export async function createMovieSession(
       .returning()
 
     revalidatePath("/sessions")
-    return { success: true, data: session }
+    return { isSuccess: true, message: "Session created successfully", data: { sessionId: session.id } }
   } catch (error) {
     console.error("Error creating movie session:", error)
-    return { success: false, message: "Failed to create session" }
+    return { isSuccess: false, message: "Failed to create session" }
   }
 }
 
 export async function joinMovieSession(
   sessionId: string
-): Promise<ActionResponse> {
+): Promise<ActionState<{ session: any }>> {
   try {
     const { userId } = await auth()
     if (!userId) {
-      return { success: false, message: "Unauthorized" }
+      return { isSuccess: false, message: "Unauthorized" }
     }
 
     // Get the session
@@ -55,11 +55,11 @@ export async function joinMovieSession(
       .limit(1)
 
     if (!session) {
-      return { success: false, message: "Session not found" }
+      return { isSuccess: false, message: "Session not found" }
     }
 
     if (session.status !== "active") {
-      return { success: false, message: "Session is no longer active" }
+      return { isSuccess: false, message: "Session is no longer active" }
     }
 
     // Add user to session if not already in it
@@ -72,10 +72,10 @@ export async function joinMovieSession(
         .where(eq(movieSessions.id, sessionId))
     }
 
-    return { success: true, data: session }
+    return { isSuccess: true, message: "Joined session successfully", data: { session } }
   } catch (error) {
     console.error("Error joining movie session:", error)
-    return { success: false, message: "Failed to join session" }
+    return { isSuccess: false, message: "Failed to join session" }
   }
 }
 
@@ -83,11 +83,11 @@ export async function swipeMovie(
   sessionId: string,
   movieId: string,
   direction: "left" | "right" | "super"
-): Promise<ActionResponse> {
+): Promise<ActionState<{ matched: boolean; movieId?: string }>> {
   try {
     const { userId } = await auth()
     if (!userId) {
-      return { success: false, message: "Unauthorized" }
+      return { isSuccess: false, message: "Unauthorized" }
     }
 
     // Insert swipe
@@ -111,14 +111,14 @@ export async function swipeMovie(
     if (direction === "right" || direction === "super") {
       const match = await checkForMatch(sessionId, movieId)
       if (match) {
-        return { success: true, data: { matched: true, movieId } }
+        return { isSuccess: true, message: "Match found!", data: { matched: true, movieId } }
       }
     }
 
-    return { success: true, data: { matched: false } }
+    return { isSuccess: true, message: "Swipe recorded", data: { matched: false } }
   } catch (error) {
     console.error("Error swiping movie:", error)
-    return { success: false, message: "Failed to record swipe" }
+    return { isSuccess: false, message: "Failed to record swipe" }
   }
 }
 
@@ -167,11 +167,11 @@ async function checkForMatch(sessionId: string, movieId: string): Promise<boolea
   return false
 }
 
-export async function getFriends(): Promise<ActionResponse> {
+export async function getFriends(): Promise<ActionState<any>> {
   try {
     const { userId } = await auth()
     if (!userId) {
-      return { success: false, message: "Unauthorized" }
+      return { isSuccess: false, message: "Unauthorized" }
     }
 
     const friends = await db
@@ -187,20 +187,20 @@ export async function getFriends(): Promise<ActionResponse> {
         )
       )
 
-    return { success: true, data: friends }
+    return { isSuccess: true, message: "Friends retrieved", data: friends }
   } catch (error) {
     console.error("Error getting friends:", error)
-    return { success: false, message: "Failed to get friends" }
+    return { isSuccess: false, message: "Failed to get friends" }
   }
 }
 
 export async function sendFriendRequest(
   targetUserId: string
-): Promise<ActionResponse> {
+): Promise<ActionState<any>> {
   try {
     const { userId } = await auth()
     if (!userId) {
-      return { success: false, message: "Unauthorized" }
+      return { isSuccess: false, message: "Unauthorized" }
     }
 
     // Ensure user1 < user2 for consistency
@@ -216,20 +216,20 @@ export async function sendFriendRequest(
       .onConflictDoNothing()
       .returning()
 
-    return { success: true, data: friendship }
+    return { isSuccess: true, message: "Friend request sent", data: friendship }
   } catch (error) {
     console.error("Error sending friend request:", error)
-    return { success: false, message: "Failed to send friend request" }
+    return { isSuccess: false, message: "Failed to send friend request" }
   }
 }
 
 export async function acceptFriendRequest(
   friendshipId: string
-): Promise<ActionResponse> {
+): Promise<ActionState<any>> {
   try {
     const { userId } = await auth()
     if (!userId) {
-      return { success: false, message: "Unauthorized" }
+      return { isSuccess: false, message: "Unauthorized" }
     }
 
     const [friendship] = await db
@@ -249,18 +249,18 @@ export async function acceptFriendRequest(
       )
       .returning()
 
-    return { success: true, data: friendship }
+    return { isSuccess: true, message: "Friend request accepted", data: friendship }
   } catch (error) {
     console.error("Error accepting friend request:", error)
-    return { success: false, message: "Failed to accept friend request" }
+    return { isSuccess: false, message: "Failed to accept friend request" }
   }
 }
 
-export async function getActiveSessions(): Promise<ActionResponse> {
+export async function getActiveSessions(): Promise<ActionState<any>> {
   try {
     const { userId } = await auth()
     if (!userId) {
-      return { success: false, message: "Unauthorized" }
+      return { isSuccess: false, message: "Unauthorized" }
     }
 
     const sessions = await db
@@ -274,18 +274,18 @@ export async function getActiveSessions(): Promise<ActionResponse> {
       )
       .orderBy(desc(movieSessions.createdAt))
 
-    return { success: true, data: sessions }
+    return { isSuccess: true, message: "Sessions retrieved", data: sessions }
   } catch (error) {
     console.error("Error getting active sessions:", error)
-    return { success: false, message: "Failed to get sessions" }
+    return { isSuccess: false, message: "Failed to get sessions" }
   }
 }
 
-export async function getSessionHistory(): Promise<ActionResponse> {
+export async function getSessionHistory(): Promise<ActionState<any>> {
   try {
     const { userId } = await auth()
     if (!userId) {
-      return { success: false, message: "Unauthorized" }
+      return { isSuccess: false, message: "Unauthorized" }
     }
 
     const sessions = await db
@@ -300,9 +300,9 @@ export async function getSessionHistory(): Promise<ActionResponse> {
       .orderBy(desc(movieSessions.createdAt))
       .limit(20)
 
-    return { success: true, data: sessions }
+    return { isSuccess: true, message: "Sessions retrieved", data: sessions }
   } catch (error) {
     console.error("Error getting session history:", error)
-    return { success: false, message: "Failed to get history" }
+    return { isSuccess: false, message: "Failed to get history" }
   }
 }

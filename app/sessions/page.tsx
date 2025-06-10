@@ -20,7 +20,7 @@ export default async function SessionsPage() {
   }
 
   const sessionsResult = await getActiveSessions()
-  const activeSessions = sessionsResult.success ? sessionsResult.data : []
+  const activeSessions = sessionsResult.isSuccess ? sessionsResult.data : []
 
   return (
     <div className="container mx-auto py-8">
