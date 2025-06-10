@@ -160,3 +160,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](license) file for details.
+
+## Credits
+
+This project was built using [McKay's App Template](https://github.com/mckaywrigley/mckays-app-template) as a foundation. Special thanks to McKay Wrigley for creating such a solid Next.js starter template!

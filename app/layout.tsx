@@ -23,8 +23,9 @@ import "./globals.css"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Mckay's App Template",
-  description: "A full-stack web app template."
+  title: "PickFlick",
+  description:
+    "Swipe through movies with friends and find the perfect film to watch together."
 }
 
 export default async function RootLayout({
