@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 Then, begin working on the todo items, marking them as complete as you go.
 4. Finally, add a review section to the todo.md file with a summary of the changes you made and any other relevant information.
 
-Periodically make sure to commit when it makes sense to do so.
+Periodically make sure to commit when it makes sense to do so and don't sign the commits from Claude.
 
 Explain to me the concept you're using as use them (e.g. context in react)
 

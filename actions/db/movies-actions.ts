@@ -6,6 +6,7 @@ import { movieSessions, swipes, friendships, matchHistory } from "@/db/schema"
 import { and, eq, or, desc, sql } from "drizzle-orm"
 import { ActionState } from "@/types/server-action-types"
 import { revalidatePath } from "next/cache"
+import { MovieService } from "@/lib/api/movie-service"
 
 export async function createMovieSession(
   userIds: string[],
@@ -20,6 +21,17 @@ export async function createMovieSession(
     // Ensure the host is included in the session
     const allUserIds = Array.from(new Set([userId, ...userIds]))
 
+    // Generate movie pool
+    const movieService = new MovieService()
+    const movies = await movieService.getMoviePool({
+      userIds: allUserIds,
+      poolSize: 50,
+      filters: preferences
+    })
+
+    // Extract just the movie IDs to store in the database
+    const movieIds = movies.map(movie => movie.id)
+
     const [session] = await db
       .insert(movieSessions)
       .values({
@@ -27,6 +39,7 @@ export async function createMovieSession(
         userIds: allUserIds,
         preferences: preferences || {},
         expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours
+        moviePool: movieIds
       })
       .returning()
 
@@ -384,11 +397,23 @@ export async function updateSessionPreferences(
       return { isSuccess: false, message: "You are not part of this session" }
     }
 
-    // Update preferences
+    // Generate new movie pool with updated preferences
+    const movieService = new MovieService()
+    const movies = await movieService.getMoviePool({
+      userIds: session.userIds,
+      poolSize: 50,
+      filters: preferences
+    })
+
+    // Extract just the movie IDs to store in the database
+    const movieIds = movies.map(movie => movie.id)
+
+    // Update preferences and movie pool
     await db
       .update(movieSessions)
       .set({
-        preferences
+        preferences,
+        moviePool: movieIds
       })
       .where(eq(movieSessions.id, sessionId))
 

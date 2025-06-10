@@ -18,7 +18,8 @@ export const movieSessions = pgTable("movie_sessions", {
   matchedMovieId: varchar("matched_movie_id", { length: 50 }), // TMDb ID when matched
   hostUserId: varchar("host_user_id", { length: 255 }).notNull(), // Clerk user ID
   userIds: text("user_ids").array().notNull(), // Array of participant user IDs
-  preferences: jsonb("preferences") // Session preferences (genres, year range, etc.)
+  preferences: jsonb("preferences"), // Session preferences (genres, year range, etc.)
+  moviePool: jsonb("movie_pool") // Pre-shuffled array of movie IDs for consistent ordering
 })
 
 // Individual swipes on movies
