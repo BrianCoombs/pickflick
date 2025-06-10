@@ -86,26 +86,52 @@ export const HeroSection = () => {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 1, ease: "easeOut" }}
-        className="mx-auto mt-20 flex w-full max-w-screen-lg items-center justify-center rounded-lg border shadow-lg"
+        className="mx-auto mt-20 flex w-full max-w-screen-lg items-center justify-center"
       >
-        <div className="relative w-full">
-          <div className="from-background/50 absolute inset-0 rounded-lg bg-gradient-to-t to-transparent" />
-          <img
-            src="/hero.png"
-            alt="PickFlick App Preview"
-            className="h-auto w-full rounded-lg"
-          />
-          <div className="absolute bottom-8 left-8 flex gap-4">
-            <div className="bg-background/90 flex items-center gap-2 rounded-full px-4 py-2 backdrop-blur">
-              <Users className="size-4" />
-              <span className="text-sm font-medium">Swipe with friends</span>
-            </div>
-            <div className="bg-background/90 flex items-center gap-2 rounded-full px-4 py-2 backdrop-blur">
-              <Heart className="size-4" />
-              <span className="text-sm font-medium">
-                Find matches instantly
-              </span>
-            </div>
+        <div className="relative flex w-full items-center justify-center py-16">
+          <div className="absolute inset-0 rounded-lg bg-gradient-to-b from-blue-500/10 to-purple-500/10 blur-3xl" />
+          <div className="relative flex gap-8">
+            <motion.div
+              initial={{ rotate: -6 }}
+              animate={{ rotate: -6 }}
+              whileHover={{ rotate: 0, scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="flex h-72 w-48 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-red-600 p-6 shadow-2xl"
+            >
+              <Film className="mb-4 size-16 text-white" />
+              <div className="text-center text-white">
+                <div className="text-2xl font-bold">Action</div>
+                <div className="mt-2 text-sm opacity-90">Swipe right</div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ rotate: 0 }}
+              animate={{ rotate: 0 }}
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="flex h-72 w-48 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 p-6 shadow-2xl"
+            >
+              <Heart className="mb-4 size-16 text-white" />
+              <div className="text-center text-white">
+                <div className="text-2xl font-bold">Romance</div>
+                <div className="mt-2 text-sm opacity-90">Match found!</div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ rotate: 6 }}
+              animate={{ rotate: 6 }}
+              whileHover={{ rotate: 0, scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              className="flex h-72 w-48 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-teal-600 p-6 shadow-2xl"
+            >
+              <Users className="mb-4 size-16 text-white" />
+              <div className="text-center text-white">
+                <div className="text-2xl font-bold">Comedy</div>
+                <div className="mt-2 text-sm opacity-90">2 friends swiping</div>
+              </div>
+            </motion.div>
           </div>
         </div>
       </motion.div>

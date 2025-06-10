@@ -38,25 +38,27 @@ A collaborative movie selection app where friends can swipe through movies toget
    ```
 
 2. **Configure environment**:
-   ```bash
-   cp .env.example .env.local
-   ```
-
-   Add your API keys to `.env.local`:
+   Create a `.env.local` file with your API keys:
    ```env
-   # Database (Supabase)
+   # Database (Supabase, Neon, or any PostgreSQL)
    DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
 
-   # Auth (Clerk)
+   # Auth (Clerk) - Required
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
    CLERK_SECRET_KEY=sk_test_...
    NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
    NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup
 
    # Movie APIs
-   TMDB_API_KEY=your_tmdb_api_key
-   TMDB_API_READ_ACCESS_TOKEN=your_tmdb_read_token
-   OMDB_API_KEY=your_omdb_key # Optional
+   TMDB_API_KEY=your_tmdb_api_key              # Required
+   TMDB_API_READ_ACCESS_TOKEN=your_tmdb_token  # Required
+   OMDB_API_KEY=your_omdb_key                  # Optional - for additional ratings
+
+   # Optional Services
+   NEXT_PUBLIC_POSTHOG_KEY=phc_...             # Analytics
+   NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+   STRIPE_SECRET_KEY=sk_test_...               # Payments
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
    ```
 
 3. **Setup database**:
@@ -105,35 +107,51 @@ When all participants swipe right on the same movie, it's a match! 🎉
 
 ### Commands
 ```bash
-npm run dev      # Start development server
-npm run build    # Build for production
-npm run lint     # Run ESLint
-npm run clean    # Fix linting and format code
+npm run dev         # Start development server
+npm run build       # Build for production
+npm run start       # Start production server
+npm run lint        # Run ESLint
+npm run type-check  # Check TypeScript types
+npm run clean       # Fix linting and format code
+
+# Database commands
+npx drizzle-kit push     # Push schema changes to database
+npx drizzle-kit generate # Generate migrations
+npx drizzle-kit studio   # Open database studio
 ```
 
-### Database
-The app uses Drizzle ORM with PostgreSQL. Schema changes:
-```bash
-npx drizzle-kit generate  # Generate migrations
-npx drizzle-kit push      # Push schema changes
-```
+## Deployment
+
+For detailed deployment instructions, see [DEPLOY.md](DEPLOY.md). Quick options:
+- **Vercel + Supabase** (Recommended) - Best for Next.js apps
+- **Railway** - All-in-one solution
+- **Render** - Budget-friendly option
 
 ## Current Status
 
 ✅ **Working Features**:
 - User authentication with Clerk
-- Movie data from TMDb API
-- Session creation and joining
-- Swipe interface with animations
-- Match detection and celebration
-- Genre and year filtering
+- Movie data from TMDb API with enriched ratings
+- Session creation with genre/year filtering
+- Beautiful swipe interface with animations
+- Match detection and celebration screen
+- Session joining with shareable codes
+- Keyboard navigation support
+- Mobile-responsive design
 
 🚧 **In Development**:
 - Real-time updates with Supabase
-- Friend system
-- Better session sharing
+- Friend system and social features
+- Movie streaming availability
+- Session history and analytics
 
-See [tasks/todo.md](tasks/todo.md) for detailed development progress.
+📋 **Recent Updates** (January 2025):
+- Fixed Next.js 15 compatibility issues
+- Updated to new async params API
+- Improved type safety across the app
+- Created comprehensive deployment guide
+
+See [tasks/todo.md](tasks/todo.md) for detailed development progress and roadmap.
 
 ## Contributing
 

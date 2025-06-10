@@ -19,12 +19,6 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { ThemeSwitcher } from "./utilities/theme-switcher"
 
-const navLinks = [
-  { href: "/about", label: "About" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/contact", label: "Contact" }
-]
-
 const signedInLinks = [{ href: "/sessions", label: "Sessions" }]
 
 export default function Header() {
@@ -61,16 +55,6 @@ export default function Header() {
         </div>
 
         <nav className="absolute left-1/2 hidden -translate-x-1/2 space-x-2 font-semibold md:flex">
-          {navLinks.map(link => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-full px-3 py-1 hover:opacity-80"
-            >
-              {link.label}
-            </Link>
-          ))}
-
           <SignedIn>
             {signedInLinks.map(link => (
               <Link
@@ -132,17 +116,6 @@ export default function Header() {
                 Home
               </Link>
             </li>
-            {navLinks.map(link => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="block hover:underline"
-                  onClick={toggleMenu}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
             <SignedIn>
               {signedInLinks.map(link => (
                 <li key={link.href}>

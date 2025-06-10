@@ -1,5 +1,49 @@
 # PickFlick - Development Progress
 
+## Current Tasks Plan
+
+### Task 1: Remove Hero Image
+- [x] Delete `/public/hero.png` file
+- [x] Update `/components/landing/hero.tsx` to remove the image reference (lines 93-98)
+- [x] Consider replacing with a movie-themed placeholder or removing the image section entirely
+
+### Task 2: Simplify Navigation
+- [x] Update `/components/header.tsx` to remove About, Pricing, and Contact links
+- [x] Remove the `navLinks` array (lines 22-26)
+- [x] Clean up navigation rendering in both desktop and mobile views
+- [x] Keep only the Sessions link for signed-in users
+
+### Task 3: Security Review
+- [x] Confirm that `docs/` and `CLAUDE.md` are not exposed in production builds
+- [x] These files are NOT in the public directory and are NOT served by Next.js
+- [x] They remain private in your source code repository
+
+## Security Confirmation
+
+**Your docs and CLAUDE.md files are SAFE from bad actors because:**
+1. They are NOT in the `/public` directory (only files in `/public` are served statically)
+2. Next.js does NOT serve arbitrary files from your project root
+3. These files only exist in your source code and are not included in the production build
+4. Only files explicitly imported/required in your code or placed in `/public` are accessible
+
+## Review of Completed Tasks
+
+### What was done:
+1. **Removed hero.png image**: Deleted the generic hero image file from `/public/hero.png`
+2. **Updated hero component**: Replaced the static image with an interactive movie genre card display featuring:
+   - Three animated cards representing different movie genres (Action, Romance, Comedy)
+   - Hover effects with spring animations
+   - Movie-themed icons and gradients
+   - Better visual representation of the app's functionality
+3. **Simplified navigation**: Removed About, Pricing, and Contact links from both desktop and mobile navigation
+4. **Cleaned up header component**: 
+   - Removed the `navLinks` array completely
+   - Kept only the Sessions link for signed-in users
+   - Maintained clean navigation structure
+
+### Result:
+The app now has a more focused, minimal navigation and a movie-themed hero section that better represents the app's purpose of swiping through movies with friends.
+
 ## Completed Features ✅
 
 ### Phase 1: Setup & Foundation
@@ -39,13 +83,11 @@
 - [x] Loading states
 - [x] Error handling
 
-## Features In Progress 🚧
+## Future Features 📋
 
 - [ ] **Real-time Updates**: Supabase subscriptions for live match notifications
 - [ ] **Friend System**: Add/accept friends functionality
 - [ ] **Session Sharing**: Better code sharing and invites
-
-## Future Features 📋
 
 ### Authentication & User Features
 - [ ] User profiles with avatar and preferences
