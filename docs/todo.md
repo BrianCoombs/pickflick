@@ -27,6 +27,37 @@ This plan outlines the implementation of features to improve the collaborative m
 4. Create different UI experiences for host vs participants
 5. Ensure arrow keys are properly bound after session starts
 
+## Movie Pool Consistency Implementation ✅
+
+**Completed on**: January 10, 2025
+
+**Problem**: Different users in a session were seeing movies in different orders because the shuffle happened on each page load.
+
+**Solution**: Store the pre-shuffled movie order in the database so all participants see the same sequence.
+
+**Tasks Completed**:
+- [x] Add moviePool field to movieSessions table to store the shuffled movie order
+- [x] Update session creation to generate and store the movie pool once
+- [x] Modify session page to use stored movie pool instead of generating new one
+- [x] Update join session flow to use existing movie pool
+- [x] Update criteria change to regenerate and store new movie pool
+- [x] Create SQL scripts for database migration
+
+**Technical Details**:
+1. Added `moviePool` JSONB column to store array of movie IDs
+2. Modified `createMovieSession` to generate and store movie pool on creation
+3. Updated session page to fetch movie details based on stored IDs
+4. Modified `updateSessionPreferences` to regenerate pool when criteria change
+5. Created migration scripts:
+   - `add-movie-pool-column.sql` - Adds the new column
+   - `clear-sessions.sql` - Clears existing sessions after deployment
+
+**Benefits**:
+- All users see movies in exactly the same order
+- Faster matching as users encounter same movies at similar times
+- Better performance (no repeated API calls for movie generation)
+- Consistent experience across page refreshes
+
 ## Completed Tasks
 
 ### Phase 2: Admin Session Control Features ✅
@@ -176,4 +207,3 @@ All three features have been successfully implemented:
 4. Ensure performance with polling mechanism
 
 The implementation successfully enhances the collaborative movie swiping experience by ensuring users wait for others before starting and providing easy session sharing capabilities.
-
