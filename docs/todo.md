@@ -132,6 +132,12 @@ The app now has a more focused, minimal navigation and a movie-themed hero secti
 
 ## Future Features 📋
 
+- [ ] 1st user shouldn't be able to swipe until more users are added
+- [ ] Number of swiping users should update automatically in real time
+- [ ] If a user tries to join the session after swiping has started, they cannot join. They should be able to join
+- [ ] When you finish swiping it should give you a screen that summarizes your swipes and asks you to wait for the others to finish swiping
+- [ ] There should be a checkbox in criteria that allows you to turn on "multi-swiping" where it doesn't determine matches until you're done swiping through all movies. To support this need to also add number of swipes to criteria so that doesn't get out of hand (add that as a variable for them to fill in when multi swipe is checked)
+
 - [ ] **Real-time Updates**: Supabase subscriptions for live match notifications
 - [ ] **Friend System**: Add/accept friends functionality
 - [ ] **Session Sharing**: Better code sharing and invites
@@ -418,6 +424,37 @@ async function checkForMatch(newSwipe: Swipe) {
 4. Create swipe UI components
 5. Implement real-time subscriptions
 6. Test with small group of users
+
+## Fix Empty String Values in Select Components
+
+### Problem Identified
+Found Select.Item components with empty string values in the criteria-dialog.tsx file that could cause issues:
+- Line 139: `<SelectItem value="">All genres</SelectItem>`
+- Line 157: `<SelectItem value="">All years</SelectItem>`
+
+Empty string values in Radix UI Select components can cause validation issues and unexpected behavior.
+
+### Plan to Fix
+
+1. **Update Select.Item values in criteria-dialog.tsx**
+   - [ ] Change empty string value for "All genres" to "all"
+   - [ ] Change empty string value for "All years" to "all"
+
+2. **Update state handling logic**
+   - [ ] Modify the genre state initialization to handle "all" value
+   - [ ] Modify the yearRange state initialization to handle "all" value
+   - [ ] Update the handleSubmit function to skip preferences when "all" is selected
+
+3. **Test the changes**
+   - [ ] Verify that selecting "All genres" properly clears genre filtering
+   - [ ] Verify that selecting "All years" properly clears year filtering
+   - [ ] Ensure the form submission works correctly with the new values
+
+### Technical Details
+The fix involves:
+1. Changing `value=""` to `value="all"` for both Select.Item components
+2. Updating the state initialization to check for "all" instead of empty string
+3. Modifying the handleSubmit to not add preferences when "all" is selected
 
 ## Review Section
 
