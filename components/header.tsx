@@ -93,7 +93,9 @@ export default function Header() {
             </SignInButton>
 
             <SignUpButton>
-              <Button className="bg-blue-500 hover:bg-blue-600">Start Swiping</Button>
+              <Button className="bg-blue-500 hover:bg-blue-600">
+                Start Swiping
+              </Button>
             </SignUpButton>
           </SignedOut>
 

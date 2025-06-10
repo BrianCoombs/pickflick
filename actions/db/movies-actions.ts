@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/db/db"
 import { movieSessions, swipes, friendships, matchHistory } from "@/db/schema"
-import { and, eq, or, desc, inArray } from "drizzle-orm"
+import { and, eq, or, desc, sql } from "drizzle-orm"
 import { ActionResponse } from "@/types/server-action-types"
 import { revalidatePath } from "next/cache"
 
@@ -269,7 +269,7 @@ export async function getActiveSessions(): Promise<ActionResponse> {
       .where(
         and(
           eq(movieSessions.status, "active"),
-          inArray(userId, movieSessions.userIds)
+          sql`${userId} = ANY(${movieSessions.userIds})`
         )
       )
       .orderBy(desc(movieSessions.createdAt))
@@ -294,7 +294,7 @@ export async function getSessionHistory(): Promise<ActionResponse> {
       .where(
         and(
           eq(movieSessions.status, "completed"),
-          inArray(userId, movieSessions.userIds)
+          sql`${userId} = ANY(${movieSessions.userIds})`
         )
       )
       .orderBy(desc(movieSessions.createdAt))

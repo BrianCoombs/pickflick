@@ -6,7 +6,13 @@ import { eq } from "drizzle-orm"
 import { MovieService } from "@/lib/api/movie-service"
 import { TMDbAPI } from "@/lib/api/tmdb"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, ExternalLink, Play, Star, Users } from "lucide-react"
 import Link from "next/link"
@@ -19,7 +25,7 @@ interface MatchPageProps {
 
 export default async function MatchPage({ params }: MatchPageProps) {
   const { userId } = await auth()
-  
+
   if (!userId) {
     redirect("/login")
   }
@@ -37,7 +43,9 @@ export default async function MatchPage({ params }: MatchPageProps) {
 
   // Get movie details
   const movieService = new MovieService()
-  const movie = await movieService.getEnrichedMovie(parseInt(session.matchedMovieId))
+  const movie = await movieService.getEnrichedMovie(
+    parseInt(session.matchedMovieId)
+  )
 
   const posterUrl = TMDbAPI.getPosterUrl(movie.poster_path, "w500")
   const backdropUrl = TMDbAPI.getBackdropUrl(movie.backdrop_path)
@@ -52,23 +60,23 @@ export default async function MatchPage({ params }: MatchPageProps) {
           <img
             src={backdropUrl}
             alt={movie.title}
-            className="w-full h-full object-cover"
+            className="size-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+          <div className="via-background/50 to-background absolute inset-0 bg-gradient-to-b from-transparent" />
         </div>
       )}
 
-      <div className="relative container mx-auto px-4 py-8">
+      <div className="container relative mx-auto px-4 py-8">
         {/* Success message */}
-        <div className="text-center mb-8 pt-8">
-          <h1 className="text-4xl font-bold mb-2">It's a Match! 🎉</h1>
-          <p className="text-xl text-muted-foreground">
+        <div className="mb-8 pt-8 text-center">
+          <h1 className="mb-2 text-4xl font-bold">It's a Match! 🎉</h1>
+          <p className="text-muted-foreground text-xl">
             Everyone wants to watch this movie
           </p>
         </div>
 
         {/* Movie details */}
-        <div className="max-w-6xl mx-auto">
+        <div className="mx-auto max-w-6xl">
           <Card className="overflow-hidden">
             <div className="md:flex">
               {/* Poster */}
@@ -77,40 +85,40 @@ export default async function MatchPage({ params }: MatchPageProps) {
                   <img
                     src={posterUrl}
                     alt={movie.title}
-                    className="w-full h-full object-cover"
+                    className="size-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-96 bg-muted flex items-center justify-center">
+                  <div className="bg-muted flex h-96 w-full items-center justify-center">
                     <p className="text-muted-foreground">No poster available</p>
                   </div>
                 )}
               </div>
 
               {/* Details */}
-              <div className="md:w-2/3 p-6 md:p-8">
+              <div className="p-6 md:w-2/3 md:p-8">
                 <CardHeader className="p-0">
-                  <CardTitle className="text-3xl mb-4">{movie.title}</CardTitle>
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <CardTitle className="mb-4 text-3xl">{movie.title}</CardTitle>
+                  <div className="mb-4 flex flex-wrap gap-2">
                     <Badge variant="secondary">
-                      <Calendar className="h-3 w-3 mr-1" />
+                      <Calendar className="mr-1 size-3" />
                       {releaseYear}
                     </Badge>
                     <Badge variant="secondary">
-                      <Clock className="h-3 w-3 mr-1" />
+                      <Clock className="mr-1 size-3" />
                       {runtime}
                     </Badge>
                     <Badge variant="secondary">
-                      <Star className="h-3 w-3 mr-1" />
+                      <Star className="mr-1 size-3" />
                       {movie.vote_average.toFixed(1)}/10
                     </Badge>
                     <Badge variant="secondary">
-                      <Users className="h-3 w-3 mr-1" />
+                      <Users className="mr-1 size-3" />
                       {session.userIds.length} watching
                     </Badge>
                   </div>
                 </CardHeader>
 
-                <CardContent className="p-0 space-y-6">
+                <CardContent className="space-y-6 p-0">
                   {/* Genres */}
                   {movie.genres && movie.genres.length > 0 && (
                     <div className="flex flex-wrap gap-2">
@@ -124,29 +132,41 @@ export default async function MatchPage({ params }: MatchPageProps) {
 
                   {/* Overview */}
                   <div>
-                    <h3 className="font-semibold mb-2">Overview</h3>
+                    <h3 className="mb-2 font-semibold">Overview</h3>
                     <p className="text-muted-foreground">{movie.overview}</p>
                   </div>
 
                   {/* Ratings */}
                   {movie.enrichedRatings && (
                     <div>
-                      <h3 className="font-semibold mb-2">Ratings</h3>
+                      <h3 className="mb-2 font-semibold">Ratings</h3>
                       <div className="flex flex-wrap gap-4">
                         <div>
-                          <span className="text-sm text-muted-foreground">TMDb: </span>
-                          <span className="font-medium">{movie.enrichedRatings.tmdb}</span>
+                          <span className="text-muted-foreground text-sm">
+                            TMDb:{" "}
+                          </span>
+                          <span className="font-medium">
+                            {movie.enrichedRatings.tmdb}
+                          </span>
                         </div>
                         {movie.enrichedRatings.imdb && (
                           <div>
-                            <span className="text-sm text-muted-foreground">IMDb: </span>
-                            <span className="font-medium">{movie.enrichedRatings.imdb}</span>
+                            <span className="text-muted-foreground text-sm">
+                              IMDb:{" "}
+                            </span>
+                            <span className="font-medium">
+                              {movie.enrichedRatings.imdb}
+                            </span>
                           </div>
                         )}
                         {movie.enrichedRatings.rottenTomatoes && (
                           <div>
-                            <span className="text-sm text-muted-foreground">Rotten Tomatoes: </span>
-                            <span className="font-medium">{movie.enrichedRatings.rottenTomatoes}</span>
+                            <span className="text-muted-foreground text-sm">
+                              Rotten Tomatoes:{" "}
+                            </span>
+                            <span className="font-medium">
+                              {movie.enrichedRatings.rottenTomatoes}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -162,16 +182,14 @@ export default async function MatchPage({ params }: MatchPageProps) {
                         rel="noopener noreferrer"
                       >
                         <Button>
-                          <Play className="mr-2 h-4 w-4" />
+                          <Play className="mr-2 size-4" />
                           Watch Trailer
                         </Button>
                       </a>
                     )}
-                    
+
                     <Link href="/sessions/new">
-                      <Button variant="outline">
-                        Start New Session
-                      </Button>
+                      <Button variant="outline">Start New Session</Button>
                     </Link>
 
                     <a
@@ -180,7 +198,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
                       rel="noopener noreferrer"
                     >
                       <Button variant="ghost">
-                        <ExternalLink className="mr-2 h-4 w-4" />
+                        <ExternalLink className="mr-2 size-4" />
                         More Info
                       </Button>
                     </a>

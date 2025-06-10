@@ -13,12 +13,14 @@ export const MovieSchema = z.object({
   vote_average: z.number(),
   vote_count: z.number(),
   genre_ids: z.array(z.number()).optional(),
-  genres: z.array(
-    z.object({
-      id: z.number(),
-      name: z.string(),
-    })
-  ).optional(),
+  genres: z
+    .array(
+      z.object({
+        id: z.number(),
+        name: z.string()
+      })
+    )
+    .optional()
 })
 
 export type Movie = z.infer<typeof MovieSchema>
@@ -32,9 +34,9 @@ export const MovieDetailsSchema = MovieSchema.extend({
       id: z.number(),
       name: z.string(),
       logo_path: z.string().nullable(),
-      origin_country: z.string(),
+      origin_country: z.string()
     })
-  ),
+  )
 })
 
 export type MovieDetails = z.infer<typeof MovieDetailsSchema>
@@ -60,7 +62,7 @@ export class TMDbAPI {
     params?: Record<string, string>
   ): Promise<T> {
     const url = new URL(`${TMDB_BASE_URL}${endpoint}`)
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         url.searchParams.append(key, value)
@@ -70,8 +72,8 @@ export class TMDbAPI {
     const response = await fetch(url.toString(), {
       headers: {
         Authorization: `Bearer ${this.readAccessToken}`,
-        "Content-Type": "application/json",
-      },
+        "Content-Type": "application/json"
+      }
     })
 
     if (!response.ok) {
@@ -86,40 +88,43 @@ export class TMDbAPI {
     return MovieDetailsSchema.parse(data)
   }
 
-  async searchMovies(query: string, page = 1): Promise<{
+  async searchMovies(
+    query: string,
+    page = 1
+  ): Promise<{
     results: Movie[]
     total_pages: number
     total_results: number
   }> {
     const response = await this.fetch<any>("/search/movie", {
       query,
-      page: page.toString(),
+      page: page.toString()
     })
 
     return {
       results: z.array(MovieSchema).parse(response.results),
       total_pages: response.total_pages,
-      total_results: response.total_results,
+      total_results: response.total_results
     }
   }
 
   async getPopularMovies(page = 1): Promise<Movie[]> {
     const response = await this.fetch<any>("/movie/popular", {
-      page: page.toString(),
+      page: page.toString()
     })
     return z.array(MovieSchema).parse(response.results)
   }
 
   async getTopRatedMovies(page = 1): Promise<Movie[]> {
     const response = await this.fetch<any>("/movie/top_rated", {
-      page: page.toString(),
+      page: page.toString()
     })
     return z.array(MovieSchema).parse(response.results)
   }
 
   async getUpcomingMovies(page = 1): Promise<Movie[]> {
     const response = await this.fetch<any>("/movie/upcoming", {
-      page: page.toString(),
+      page: page.toString()
     })
     return z.array(MovieSchema).parse(response.results)
   }
@@ -128,7 +133,7 @@ export class TMDbAPI {
     const response = await this.fetch<any>(
       `/movie/${movieId}/recommendations`,
       {
-        page: page.toString(),
+        page: page.toString()
       }
     )
     return z.array(MovieSchema).parse(response.results)
@@ -145,12 +150,18 @@ export class TMDbAPI {
     )
   }
 
-  static getPosterUrl(posterPath: string | null, size: "w200" | "w500" | "original" = "w500"): string | null {
+  static getPosterUrl(
+    posterPath: string | null,
+    size: "w200" | "w500" | "original" = "w500"
+  ): string | null {
     if (!posterPath) return null
     return `${TMDB_IMAGE_BASE_URL}/${size}${posterPath}`
   }
 
-  static getBackdropUrl(backdropPath: string | null, size: "w500" | "w1280" | "original" = "w1280"): string | null {
+  static getBackdropUrl(
+    backdropPath: string | null,
+    size: "w500" | "w1280" | "original" = "w1280"
+  ): string | null {
     if (!backdropPath) return null
     return `${TMDB_IMAGE_BASE_URL}/${size}${backdropPath}`
   }

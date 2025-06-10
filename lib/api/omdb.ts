@@ -20,7 +20,7 @@ export const OMDbMovieSchema = z.object({
   Ratings: z.array(
     z.object({
       Source: z.string(),
-      Value: z.string(),
+      Value: z.string()
     })
   ),
   Metascore: z.string(),
@@ -32,7 +32,7 @@ export const OMDbMovieSchema = z.object({
   BoxOffice: z.string().optional(),
   Production: z.string().optional(),
   Website: z.string().optional(),
-  Response: z.string(),
+  Response: z.string()
 })
 
 export type OMDbMovie = z.infer<typeof OMDbMovieSchema>
@@ -53,7 +53,7 @@ export class OMDbAPI {
   private async fetch<T>(params: Record<string, string>): Promise<T> {
     const url = new URL(OMDB_BASE_URL)
     url.searchParams.append("apikey", this.apiKey)
-    
+
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.append(key, value)
     })
@@ -76,7 +76,7 @@ export class OMDbAPI {
   async getMovieByImdbId(imdbId: string): Promise<OMDbMovie> {
     const data = await this.fetch<OMDbMovie>({
       i: imdbId,
-      plot: "full",
+      plot: "full"
     })
     return OMDbMovieSchema.parse(data)
   }
@@ -84,7 +84,7 @@ export class OMDbAPI {
   async searchMovies(title: string, year?: string): Promise<OMDbMovie> {
     const params: Record<string, string> = {
       t: title,
-      plot: "full",
+      plot: "full"
     }
 
     if (year) {
@@ -97,7 +97,7 @@ export class OMDbAPI {
 
   static parseRatings(movie: OMDbMovie) {
     const ratings: Record<string, string> = {}
-    
+
     movie.Ratings.forEach(rating => {
       switch (rating.Source) {
         case "Internet Movie Database":

@@ -18,7 +18,11 @@ interface SwipeInterfaceProps {
   participantCount: number
 }
 
-export default function SwipeInterface({ sessionId, movies, participantCount }: SwipeInterfaceProps) {
+export default function SwipeInterface({
+  sessionId,
+  movies,
+  participantCount
+}: SwipeInterfaceProps) {
   const router = useRouter()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [direction, setDirection] = useState<string | null>(null)
@@ -29,19 +33,23 @@ export default function SwipeInterface({ sessionId, movies, participantCount }: 
 
   const handleSwipe = async (swipeDirection: "left" | "right" | "super") => {
     if (loading || !currentMovie) return
-    
+
     setLoading(true)
     setDirection(swipeDirection)
 
     try {
-      const result = await swipeMovie(sessionId, currentMovie.id.toString(), swipeDirection)
-      
+      const result = await swipeMovie(
+        sessionId,
+        currentMovie.id.toString(),
+        swipeDirection
+      )
+
       if (result.success && result.data?.matched) {
         toast({
           title: "It's a match! 🎬",
-          description: "Everyone wants to watch this movie!",
+          description: "Everyone wants to watch this movie!"
         })
-        
+
         // Redirect to match page
         setTimeout(() => {
           router.push(`/sessions/${sessionId}/match`)
@@ -56,7 +64,7 @@ export default function SwipeInterface({ sessionId, movies, participantCount }: 
         } else {
           toast({
             title: "No more movies",
-            description: "You've gone through all available movies!",
+            description: "You've gone through all available movies!"
           })
         }
       }
@@ -73,7 +81,7 @@ export default function SwipeInterface({ sessionId, movies, participantCount }: 
 
   const handleKeyPress = (e: KeyboardEvent) => {
     if (loading) return
-    
+
     switch (e.key) {
       case "ArrowLeft":
         handleSwipe("left")
@@ -94,7 +102,7 @@ export default function SwipeInterface({ sessionId, movies, participantCount }: 
 
   if (!currentMovie) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex h-full items-center justify-center">
         <p className="text-muted-foreground">No movies available</p>
       </div>
     )
@@ -104,14 +112,14 @@ export default function SwipeInterface({ sessionId, movies, participantCount }: 
   const releaseYear = new Date(currentMovie.release_date).getFullYear()
 
   return (
-    <div className="relative h-full flex flex-col items-center justify-center p-4">
+    <div className="relative flex h-full flex-col items-center justify-center p-4">
       {/* Status bar */}
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
+      <div className="absolute inset-x-4 top-4 flex items-center justify-between">
         <Badge variant="secondary" className="flex items-center gap-2">
-          <Users className="h-3 w-3" />
+          <Users className="size-3" />
           {participantCount} swiping
         </Badge>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           {currentIndex + 1} / {movies.length}
         </p>
       </div>
@@ -121,52 +129,60 @@ export default function SwipeInterface({ sessionId, movies, participantCount }: 
         <motion.div
           key={currentMovie.id}
           initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ 
-            scale: 1, 
+          animate={{
+            scale: 1,
             opacity: 1,
             x: direction === "left" ? -300 : direction === "right" ? 300 : 0,
             rotate: direction === "left" ? -20 : direction === "right" ? 20 : 0
           }}
-          exit={{ 
-            scale: 0.8, 
+          exit={{
+            scale: 0.8,
             opacity: 0,
             x: direction === "left" ? -300 : direction === "right" ? 300 : 0,
             rotate: direction === "left" ? -20 : direction === "right" ? 20 : 0
           }}
           transition={{ duration: 0.3 }}
-          className="relative max-w-md w-full"
+          className="relative w-full max-w-md"
         >
           <Card className="overflow-hidden">
-            <div className="relative aspect-[2/3] bg-muted">
+            <div className="bg-muted relative aspect-[2/3]">
               {posterUrl ? (
                 <img
                   src={posterUrl}
                   alt={currentMovie.title}
-                  className="w-full h-full object-cover"
+                  className="size-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
+                <div className="flex size-full items-center justify-center">
                   <p className="text-muted-foreground">No poster available</p>
                 </div>
               )}
-              
+
               {/* Gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-              
+
               {/* Movie info overlay */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                <h2 className="text-2xl font-bold mb-2">{currentMovie.title}</h2>
-                <div className="flex items-center gap-4 mb-3">
-                  <Badge variant="secondary" className="bg-white/20 text-white border-0">
-                    <Calendar className="h-3 w-3 mr-1" />
+              <div className="absolute inset-x-0 bottom-0 p-6 text-white">
+                <h2 className="mb-2 text-2xl font-bold">
+                  {currentMovie.title}
+                </h2>
+                <div className="mb-3 flex items-center gap-4">
+                  <Badge
+                    variant="secondary"
+                    className="border-0 bg-white/20 text-white"
+                  >
+                    <Calendar className="mr-1 size-3" />
                     {releaseYear}
                   </Badge>
-                  <Badge variant="secondary" className="bg-white/20 text-white border-0">
-                    <Star className="h-3 w-3 mr-1" />
+                  <Badge
+                    variant="secondary"
+                    className="border-0 bg-white/20 text-white"
+                  >
+                    <Star className="mr-1 size-3" />
                     {currentMovie.vote_average.toFixed(1)}
                   </Badge>
                 </div>
-                <p className="text-sm line-clamp-3 opacity-90">
+                <p className="line-clamp-3 text-sm opacity-90">
                   {currentMovie.overview}
                 </p>
               </div>
@@ -180,37 +196,37 @@ export default function SwipeInterface({ sessionId, movies, participantCount }: 
         <Button
           variant="outline"
           size="icon"
-          className="h-16 w-16 rounded-full border-2"
+          className="size-16 rounded-full border-2"
           onClick={() => handleSwipe("left")}
           disabled={loading}
         >
-          <X className="h-8 w-8" />
+          <X className="size-8" />
         </Button>
-        
+
         <Button
           variant="outline"
           size="icon"
-          className="h-20 w-20 rounded-full border-2 border-yellow-500 hover:bg-yellow-50"
+          className="size-20 rounded-full border-2 border-yellow-500 hover:bg-yellow-50"
           onClick={() => handleSwipe("super")}
           disabled={loading}
         >
-          <Star className="h-10 w-10 text-yellow-500" />
+          <Star className="size-10 text-yellow-500" />
         </Button>
-        
+
         <Button
           variant="outline"
           size="icon"
-          className="h-16 w-16 rounded-full border-2 border-green-500 hover:bg-green-50"
+          className="size-16 rounded-full border-2 border-green-500 hover:bg-green-50"
           onClick={() => handleSwipe("right")}
           disabled={loading}
         >
-          <Heart className="h-8 w-8 text-green-500" />
+          <Heart className="size-8 text-green-500" />
         </Button>
       </div>
 
       {/* Instructions */}
       <div className="absolute bottom-4 text-center">
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           Use arrow keys: ← Pass | → Like | ↑ Super Like
         </p>
       </div>

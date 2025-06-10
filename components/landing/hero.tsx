@@ -64,7 +64,8 @@ export const HeroSection = () => {
           transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
           className="max-w-xl text-balance text-xl"
         >
-          Swipe through movies with friends and instantly find the perfect film everyone wants to watch.
+          Swipe through movies with friends and instantly find the perfect film
+          everyone wants to watch.
         </motion.div>
 
         <motion.div
@@ -72,10 +73,7 @@ export const HeroSection = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.8, ease: "easeOut" }}
         >
-          <Link
-            href="/signup"
-            onClick={handleGetStartedClick}
-          >
+          <Link href="/signup" onClick={handleGetStartedClick}>
             <Button className="bg-blue-500 text-lg hover:bg-blue-600">
               <Film className="mr-2 size-5" />
               Start Swiping &rarr;
@@ -91,20 +89,22 @@ export const HeroSection = () => {
         className="mx-auto mt-20 flex w-full max-w-screen-lg items-center justify-center rounded-lg border shadow-lg"
       >
         <div className="relative w-full">
-          <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent rounded-lg" />
+          <div className="from-background/50 absolute inset-0 rounded-lg bg-gradient-to-t to-transparent" />
           <img
             src="/hero.png"
             alt="PickFlick App Preview"
-            className="w-full h-auto rounded-lg"
+            className="h-auto w-full rounded-lg"
           />
           <div className="absolute bottom-8 left-8 flex gap-4">
-            <div className="flex items-center gap-2 bg-background/90 backdrop-blur px-4 py-2 rounded-full">
+            <div className="bg-background/90 flex items-center gap-2 rounded-full px-4 py-2 backdrop-blur">
               <Users className="size-4" />
               <span className="text-sm font-medium">Swipe with friends</span>
             </div>
-            <div className="flex items-center gap-2 bg-background/90 backdrop-blur px-4 py-2 rounded-full">
+            <div className="bg-background/90 flex items-center gap-2 rounded-full px-4 py-2 backdrop-blur">
               <Heart className="size-4" />
-              <span className="text-sm font-medium">Find matches instantly</span>
+              <span className="text-sm font-medium">
+                Find matches instantly
+              </span>
             </div>
           </div>
         </div>

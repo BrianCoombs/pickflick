@@ -3,7 +3,13 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -30,7 +36,7 @@ const movieGenres = [
   { id: 10770, name: "TV Movie" },
   { id: 53, name: "Thriller" },
   { id: 10752, name: "War" },
-  { id: 37, name: "Western" },
+  { id: 37, name: "Western" }
 ]
 
 export default function NewSessionPage() {
@@ -44,7 +50,7 @@ export default function NewSessionPage() {
 
   const handleCreateSession = async () => {
     setLoading(true)
-    
+
     try {
       const preferences = {
         genres: selectedGenres,
@@ -54,11 +60,12 @@ export default function NewSessionPage() {
       }
 
       const result = await createMovieSession([], preferences)
-      
+
       if (result.success && result.data) {
         toast({
           title: "Session created!",
-          description: "Share the session code with your friends"
+          description: `Session code: ${result.data.id.slice(0, 8)}`,
+          duration: 10000 // Show for 10 seconds
         })
         router.push(`/sessions/${result.data.id}`)
       } else {
@@ -76,25 +83,27 @@ export default function NewSessionPage() {
   }
 
   const toggleGenre = (genreId: number) => {
-    setSelectedGenres(prev => 
-      prev.includes(genreId) 
+    setSelectedGenres(prev =>
+      prev.includes(genreId)
         ? prev.filter(id => id !== genreId)
         : [...prev, genreId]
     )
   }
 
   return (
-    <div className="container max-w-4xl mx-auto py-8">
+    <div className="container mx-auto max-w-4xl py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Create New Session</h1>
-        <p className="text-muted-foreground">Set your preferences and start swiping</p>
+        <h1 className="mb-2 text-3xl font-bold">Create New Session</h1>
+        <p className="text-muted-foreground">
+          Set your preferences and start swiping
+        </p>
       </div>
 
       <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Film className="h-5 w-5" />
+              <Film className="size-5" />
               Movie Preferences
             </CardTitle>
             <CardDescription>
@@ -103,8 +112,8 @@ export default function NewSessionPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <Label className="text-base mb-3 block">Genres</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <Label className="mb-3 block text-base">Genres</Label>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {movieGenres.map(genre => (
                   <div key={genre.id} className="flex items-center space-x-2">
                     <Checkbox
@@ -114,7 +123,7 @@ export default function NewSessionPage() {
                     />
                     <Label
                       htmlFor={`genre-${genre.id}`}
-                      className="text-sm font-normal cursor-pointer"
+                      className="cursor-pointer text-sm font-normal"
                     >
                       {genre.name}
                     </Label>
@@ -132,7 +141,12 @@ export default function NewSessionPage() {
                   min="1900"
                   max={new Date().getFullYear()}
                   value={yearRange.min}
-                  onChange={(e) => setYearRange(prev => ({ ...prev, min: parseInt(e.target.value) }))}
+                  onChange={e =>
+                    setYearRange(prev => ({
+                      ...prev,
+                      min: parseInt(e.target.value)
+                    }))
+                  }
                 />
               </div>
               <div>
@@ -143,7 +157,12 @@ export default function NewSessionPage() {
                   min="1900"
                   max={new Date().getFullYear()}
                   value={yearRange.max}
-                  onChange={(e) => setYearRange(prev => ({ ...prev, max: parseInt(e.target.value) }))}
+                  onChange={e =>
+                    setYearRange(prev => ({
+                      ...prev,
+                      max: parseInt(e.target.value)
+                    }))
+                  }
                 />
               </div>
             </div>
@@ -153,7 +172,7 @@ export default function NewSessionPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+              <Users className="size-5" />
               Invite Friends
             </CardTitle>
             <CardDescription>
@@ -161,8 +180,9 @@ export default function NewSessionPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Create the session first, then share the code with your friends so they can join and start swiping together.
+            <p className="text-muted-foreground text-sm">
+              Create the session first, then share the code with your friends so
+              they can join and start swiping together.
             </p>
           </CardContent>
         </Card>

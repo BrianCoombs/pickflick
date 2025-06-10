@@ -14,7 +14,7 @@ interface SessionPageProps {
 
 export default async function SessionPage({ params }: SessionPageProps) {
   const { userId } = await auth()
-  
+
   if (!userId) {
     redirect("/login")
   }
@@ -49,7 +49,7 @@ export default async function SessionPage({ params }: SessionPageProps) {
   })
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="flex h-screen flex-col">
       <SwipeInterface
         sessionId={params.sessionId}
         movies={movies}

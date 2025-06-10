@@ -20,7 +20,7 @@ export class MovieService {
 
   constructor() {
     this.tmdb = new TMDbAPI()
-    
+
     // OMDb is optional
     try {
       this.omdb = new OMDbAPI()
@@ -29,7 +29,10 @@ export class MovieService {
     }
   }
 
-  async getEnrichedMovie(tmdbId: number, imdbId?: string): Promise<EnrichedMovie> {
+  async getEnrichedMovie(
+    tmdbId: number,
+    imdbId?: string
+  ): Promise<EnrichedMovie> {
     // Check cache first
     const cached = await this.getCachedMovie(tmdbId.toString())
     if (cached) {
@@ -38,12 +41,12 @@ export class MovieService {
 
     // Get base movie data from TMDb
     const tmdbMovie = await this.tmdb.getMovie(tmdbId)
-    
+
     let enrichedMovie: EnrichedMovie = {
       ...tmdbMovie,
       enrichedRatings: {
-        tmdb: `${tmdbMovie.vote_average}/10`,
-      },
+        tmdb: `${tmdbMovie.vote_average}/10`
+      }
     }
 
     // Get trailer
@@ -61,10 +64,10 @@ export class MovieService {
       try {
         const omdbMovie = await this.omdb.getMovieByImdbId(imdbId)
         const ratings = OMDbAPI.parseRatings(omdbMovie)
-        
+
         enrichedMovie.enrichedRatings = {
           ...enrichedMovie.enrichedRatings,
-          ...ratings,
+          ...ratings
         }
       } catch (error) {
         console.error("Failed to fetch OMDb data:", error)
@@ -111,30 +114,36 @@ export class MovieService {
     // TODO: Integrate with user watchlists from Letterboxd/Plex
     const [popular, topRated] = await Promise.all([
       this.getPopularMovies(),
-      this.getTopRatedMovies(),
+      this.getTopRatedMovies()
     ])
 
     // Add movies ensuring no duplicates
     const addMovies = (movies: Movie[], limit: number) => {
       for (const movie of movies) {
         if (movieIds.has(movie.id)) continue
-        
+
         // Apply filters
         if (config.filters) {
           const year = new Date(movie.release_date).getFullYear()
-          
+
           if (config.filters.minYear && year < config.filters.minYear) continue
           if (config.filters.maxYear && year > config.filters.maxYear) continue
-          if (config.filters.minRating && movie.vote_average < config.filters.minRating) continue
+          if (
+            config.filters.minRating &&
+            movie.vote_average < config.filters.minRating
+          )
+            continue
           if (config.filters.genres && movie.genre_ids) {
-            const hasGenre = config.filters.genres.some(g => movie.genre_ids?.includes(g))
+            const hasGenre = config.filters.genres.some(g =>
+              movie.genre_ids?.includes(g)
+            )
             if (!hasGenre) continue
           }
         }
 
         movieIds.add(movie.id)
         pool.push(movie)
-        
+
         if (pool.length >= limit) break
       }
     }
@@ -170,21 +179,24 @@ export class MovieService {
     }
   }
 
-  private async cacheMovie(tmdbId: string, movie: EnrichedMovie): Promise<void> {
+  private async cacheMovie(
+    tmdbId: string,
+    movie: EnrichedMovie
+  ): Promise<void> {
     try {
       await db
         .insert(cachedMovies)
         .values({
           tmdbId,
           data: movie,
-          updatedAt: new Date(),
+          updatedAt: new Date()
         })
         .onConflictDoUpdate({
           target: cachedMovies.tmdbId,
           set: {
             data: movie,
-            updatedAt: new Date(),
-          },
+            updatedAt: new Date()
+          }
         })
     } catch (error) {
       console.error("Cache write error:", error)

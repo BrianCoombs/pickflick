@@ -32,12 +32,14 @@ interface FeatureProps {
 const features: FeatureProps[] = [
   {
     title: "Swipe Together",
-    description: "Create sessions and swipe through movies with friends in real-time",
+    description:
+      "Create sessions and swipe through movies with friends in real-time",
     icon: Users
   },
   {
     title: "Instant Matches",
-    description: "Get notified the moment everyone swipes right on the same movie",
+    description:
+      "Get notified the moment everyone swipes right on the same movie",
     icon: Zap
   },
   {
@@ -87,7 +89,9 @@ export const FeaturesSection = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          <h2 className="mb-12 text-center text-4xl font-bold">How PickFlick Works</h2>
+          <h2 className="mb-12 text-center text-4xl font-bold">
+            How PickFlick Works
+          </h2>
           <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
               <FeatureCard key={index} {...feature} />
