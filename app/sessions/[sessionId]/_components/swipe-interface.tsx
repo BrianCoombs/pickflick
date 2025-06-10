@@ -5,8 +5,23 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { X, Heart, Star, Users, Calendar, Clock, Trash2 } from "lucide-react"
-import { swipeMovie, deleteMovieSession } from "@/actions/db/movies-actions"
+import {
+  X,
+  Heart,
+  Star,
+  Users,
+  Calendar,
+  Clock,
+  Trash2,
+  Copy,
+  Share2,
+  Play
+} from "lucide-react"
+import {
+  swipeMovie,
+  deleteMovieSession,
+  startMovieSession
+} from "@/actions/db/movies-actions"
 import { toast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { TMDbAPI } from "@/lib/api/tmdb"
@@ -28,6 +43,7 @@ interface SwipeInterfaceProps {
   sessionId: string
   movies: Movie[]
   participantCount: number
+  sessionStarted: boolean
   isHost: boolean
   preferences?: any
 }
@@ -36,6 +52,7 @@ export default function SwipeInterface({
   sessionId,
   movies,
   participantCount,
+  sessionStarted,
   isHost,
   preferences
 }: SwipeInterfaceProps) {
@@ -97,7 +114,7 @@ export default function SwipeInterface({
   }
 
   const handleKeyPress = (e: KeyboardEvent) => {
-    if (loading) return
+    if (loading || !sessionStarted) return
 
     switch (e.key) {
       case "ArrowLeft":
@@ -115,7 +132,31 @@ export default function SwipeInterface({
   useEffect(() => {
     window.addEventListener("keydown", handleKeyPress)
     return () => window.removeEventListener("keydown", handleKeyPress)
-  }, [currentIndex, loading])
+  }, [currentIndex, loading, sessionStarted])
+
+  const handleStartSession = async () => {
+    try {
+      const result = await startMovieSession(sessionId)
+      if (result.isSuccess) {
+        toast({
+          title: "Session started!",
+          description: "Let's start swiping together"
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start session",
+        variant: "destructive"
+      })
+    }
+  }
 
   const handleDeleteSession = async () => {
     setDeletingSession(true)
@@ -143,6 +184,167 @@ export default function SwipeInterface({
     } finally {
       setDeletingSession(false)
     }
+  }
+
+  const copySessionCode = async () => {
+    const shortCode = sessionId.slice(0, 8).toLowerCase()
+    try {
+      await navigator.clipboard.writeText(shortCode)
+      toast({
+        title: "Copied!",
+        description: "Session code copied to clipboard"
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy session code",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const shareSession = async () => {
+    const shortCode = sessionId.slice(0, 8).toLowerCase()
+    const shareData = {
+      title: "Join my PickFlick session!",
+      text: `Join my movie swiping session with code: ${shortCode}`,
+      url: `${window.location.origin}/sessions/join`
+    }
+
+    try {
+      if (navigator.share && navigator.canShare(shareData)) {
+        await navigator.share(shareData)
+      } else {
+        // Fallback to copy
+        await copySessionCode()
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name !== "AbortError") {
+        toast({
+          title: "Error",
+          description: "Failed to share session",
+          variant: "destructive"
+        })
+      }
+    }
+  }
+
+  // Show waiting screen if session hasn't started
+  if (!sessionStarted) {
+    const shortCode = sessionId.slice(0, 8).toLowerCase()
+
+    return (
+      <div className="flex h-full flex-col items-center justify-center p-8">
+        <div className="max-w-md space-y-8 text-center">
+          <div className="space-y-4">
+            <div className="bg-muted/30 mx-auto flex size-20 items-center justify-center rounded-full">
+              <Users className="text-muted-foreground size-10" />
+            </div>
+            <h2 className="text-3xl font-bold">
+              {isHost
+                ? "Your session is ready!"
+                : "Waiting for host to start..."}
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              {isHost
+                ? "Share the session code with your friends"
+                : "The host will start the session when everyone is ready"}
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-6">
+              <p className="text-muted-foreground mb-2 text-sm">Session Code</p>
+              <div className="flex items-center justify-center gap-3">
+                <code className="font-mono text-4xl font-bold tracking-wider">
+                  {shortCode}
+                </code>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={copySessionCode}
+                    className="size-10"
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                  {typeof navigator !== "undefined" && "share" in navigator && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={shareSession}
+                      className="size-10"
+                    >
+                      <Share2 className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-2">
+              <Badge variant="secondary" className="text-base">
+                <Users className="mr-2 size-4" />
+                {participantCount}{" "}
+                {participantCount === 1 ? "participant" : "participants"}{" "}
+                waiting
+              </Badge>
+            </div>
+
+            {isHost && participantCount >= 1 && (
+              <Button
+                size="lg"
+                onClick={handleStartSession}
+                className="font-semibold"
+              >
+                <Play className="mr-2 size-5" />
+                Start Session
+              </Button>
+            )}
+
+            <p className="text-muted-foreground text-sm">
+              Friends can join at{" "}
+              <span className="font-medium">
+                {typeof window !== "undefined"
+                  ? `${window.location.origin}/sessions/join`
+                  : "/sessions/join"}
+              </span>
+            </p>
+          </div>
+
+          {isHost && (
+            <div className="pt-4">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Trash2 className="mr-2 size-4" />
+                    Cancel Session
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancel this session?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will delete the session. You can always create a new
+                      one.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Keep Waiting</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteSession}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Cancel Session
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+        </div>
+      </div>
+    )
   }
 
   if (!currentMovie) {
@@ -207,6 +409,13 @@ export default function SwipeInterface({
           <Badge variant="secondary" className="flex items-center gap-2">
             <Users className="size-3" />
             {participantCount} swiping
+          </Badge>
+          <Badge
+            variant="outline"
+            className="cursor-pointer font-mono"
+            onClick={copySessionCode}
+          >
+            {sessionId.slice(0, 8).toLowerCase()}
           </Badge>
           <p className="text-muted-foreground text-sm">
             {currentIndex + 1} / {movies.length}
@@ -324,7 +533,7 @@ export default function SwipeInterface({
           size="icon"
           className="size-16 rounded-full border-2"
           onClick={() => handleSwipe("left")}
-          disabled={loading}
+          disabled={loading || !sessionStarted}
         >
           <X className="size-8" />
         </Button>
@@ -334,7 +543,7 @@ export default function SwipeInterface({
           size="icon"
           className="size-20 rounded-full border-2 border-yellow-500 hover:bg-yellow-50"
           onClick={() => handleSwipe("super")}
-          disabled={loading}
+          disabled={loading || !sessionStarted}
         >
           <Star className="size-10 text-yellow-500" />
         </Button>
@@ -344,7 +553,7 @@ export default function SwipeInterface({
           size="icon"
           className="size-16 rounded-full border-2 border-green-500 hover:bg-green-50"
           onClick={() => handleSwipe("right")}
-          disabled={loading}
+          disabled={loading || !sessionStarted}
         >
           <Heart className="size-8 text-green-500" />
         </Button>

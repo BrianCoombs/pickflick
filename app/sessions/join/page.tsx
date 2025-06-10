@@ -38,12 +38,12 @@ export default function JoinSessionPage() {
     try {
       const result = await joinMovieSession(sessionCode.trim())
 
-      if (result.isSuccess) {
+      if (result.isSuccess && result.data) {
         toast({
           title: "Joined session!",
           description: "Let's start swiping"
         })
-        router.push(`/sessions/${sessionCode}`)
+        router.push(`/sessions/${result.data.sessionId}`)
       } else {
         toast({
           title: "Error",
@@ -78,7 +78,7 @@ export default function JoinSessionPage() {
             Session Code
           </CardTitle>
           <CardDescription>
-            Ask your friend for the session code to join their movie session
+            Enter the 8-character code shared by your friend
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -88,10 +88,10 @@ export default function JoinSessionPage() {
               <Input
                 id="session-code"
                 type="text"
-                placeholder="e.g. abc123-def456"
+                placeholder="e.g. a1b2c3d4"
                 value={sessionCode}
                 onChange={e => setSessionCode(e.target.value)}
-                className="mt-1"
+                className="mt-1 text-center font-mono text-lg"
                 autoFocus
               />
             </div>

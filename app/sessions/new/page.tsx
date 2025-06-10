@@ -27,7 +27,7 @@ export default function NewSessionPage() {
       if (result.isSuccess && result.data) {
         toast({
           title: "Session created!",
-          description: `Session code: ${result.data.sessionId.slice(0, 8)}`,
+          description: `Session code: ${result.data.sessionId.slice(0, 8).toLowerCase()}`,
           duration: 10000 // Show for 10 seconds
         })
         router.push(`/sessions/${result.data.sessionId}`)

@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server"
 import { db } from "@/db/db"
 import { movieSessions } from "@/db/schema"
 import { eq } from "drizzle-orm"
-import SwipeInterface from "./_components/swipe-interface"
+import SessionWrapper from "./_components/session-wrapper"
 import { MovieService } from "@/lib/api/movie-service"
 
 interface SessionPageProps {
@@ -52,10 +52,11 @@ export default async function SessionPage({ params }: SessionPageProps) {
 
   return (
     <div className="flex h-screen flex-col">
-      <SwipeInterface
+      <SessionWrapper
         sessionId={sessionId}
         movies={movies}
-        participantCount={session.userIds.length}
+        initialParticipantCount={session.userIds.length}
+        initialSessionStarted={session.status === "started"}
         isHost={session.hostUserId === userId}
         preferences={session.preferences}
       />

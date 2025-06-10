@@ -1,513 +1,179 @@
-# PickFlick - Development Progress
-
-## Current Tasks Plan
-
-### Task 1: Remove Hero Image
-- [x] Delete `/public/hero.png` file
-- [x] Update `/components/landing/hero.tsx` to remove the image reference (lines 93-98)
-- [x] Consider replacing with a movie-themed placeholder or removing the image section entirely
-
-### Task 2: Simplify Navigation
-- [x] Update `/components/header.tsx` to remove About, Pricing, and Contact links
-- [x] Remove the `navLinks` array (lines 22-26)
-- [x] Clean up navigation rendering in both desktop and mobile views
-- [x] Keep only the Sessions link for signed-in users
-
-### Task 3: Security Review
-- [x] Confirm that `docs/` and `CLAUDE.md` are not exposed in production builds
-- [x] These files are NOT in the public directory and are NOT served by Next.js
-- [x] They remain private in your source code repository
-
-## Current Issues to Fix (January 2025)
-
-### 1. Clerk Auth Middleware Detection Issue
-- [ ] Update middleware.ts to ensure proper async handling
-- [ ] Add explicit return statements for all code paths
-- [ ] Add try-catch wrapper for better error handling
-
-### 2. Movie Fetching Improvements
-- [ ] Add `discoverMovies` method to TMDb API that uses `/discover/movie` endpoint
-- [ ] Update `MovieService.getMoviePool` to use discover API with pagination
-- [ ] Implement pagination to fetch multiple pages until 50 movies minimum
-- [ ] Handle cases where less than 50 movies are available
-
-### 3. Change Criteria Feature
-- [ ] Create modal/dialog component for updating session criteria
-- [ ] Add `updateSessionPreferences` server action
-- [ ] Clear existing swipes when criteria changes
-- [ ] Add UI button on session page to trigger criteria change
-
-### 4. Delete Session Feature
-- [ ] Create `deleteMovieSession` server action
-- [ ] Verify user is the host before allowing deletion
-- [ ] Delete all related swipes and session data
-- [ ] Add delete button in UI (only visible to host)
-- [ ] Redirect to sessions list after deletion
-
-### 5. User Experience Improvements
-- [ ] Show message when movie pool is exhausted
-- [ ] Add options to change criteria or delete session
-- [ ] Add loading states during movie fetching
-- [ ] Show movie count and current position in UI
-
-## Technical Implementation Details
-
-### Files to Modify:
-1. `/middleware.ts` - Fix Clerk auth detection
-2. `/lib/api/tmdb.ts` - Add discover endpoint
-3. `/lib/api/movie-service.ts` - Update movie fetching logic
-4. `/actions/db/movies-actions.ts` - Add new server actions
-5. `/app/sessions/[sessionId]/page.tsx` - Update session page
-6. `/app/sessions/[sessionId]/_components/swipe-interface.tsx` - Add UI controls
-
-### New Components to Create:
-1. Change criteria dialog/modal
-2. Session management controls
-3. Empty state component for exhausted movies
-
-## Security Confirmation
-
-**Your docs and CLAUDE.md files are SAFE from bad actors because:**
-1. They are NOT in the `/public` directory (only files in `/public` are served statically)
-2. Next.js does NOT serve arbitrary files from your project root
-3. These files only exist in your source code and are not included in the production build
-4. Only files explicitly imported/required in your code or placed in `/public` are accessible
-
-## Review of Completed Tasks
-
-### What was done:
-1. **Removed hero.png image**: Deleted the generic hero image file from `/public/hero.png`
-2. **Updated hero component**: Replaced the static image with an interactive movie genre card display featuring:
-   - Three animated cards representing different movie genres (Action, Romance, Comedy)
-   - Hover effects with spring animations
-   - Movie-themed icons and gradients
-   - Better visual representation of the app's functionality
-3. **Simplified navigation**: Removed About, Pricing, and Contact links from both desktop and mobile navigation
-4. **Cleaned up header component**: 
-   - Removed the `navLinks` array completely
-   - Kept only the Sessions link for signed-in users
-   - Maintained clean navigation structure
-
-### Result:
-The app now has a more focused, minimal navigation and a movie-themed hero section that better represents the app's purpose of swiping through movies with friends.
-
-## Completed Features ✅
-
-### Phase 1: Setup & Foundation
-- [x] Project setup and repository creation
-- [x] Converted template to PickFlick movie app
-- [x] Updated branding and navigation
-- [x] Set up environment variables structure
-
-### Phase 2: API Integration
-- [x] TMDb API service implementation
-- [x] OMDb API service (optional ratings)
-- [x] Unified MovieService for data aggregation
-- [x] Movie data caching system
-
-### Phase 3: Database
-- [x] Designed complete database schema
-- [x] Movie sessions table with preferences
-- [x] Swipes tracking with unique constraints
-- [x] Friendships and user relationships
-- [x] Match history for analytics
-- [x] Cached movies for performance
-
-### Phase 4: Core Features
-- [x] Session creation with genre/year filters
-- [x] Movie pool generation from TMDb
-- [x] Swipe interface with animations
-- [x] Keyboard controls (arrow keys)
-- [x] Basic match detection logic
-- [x] Match celebration page
-- [x] Session joining with codes
-
-### Phase 5: UI/UX
-- [x] Landing page with features
-- [x] Responsive movie cards
-- [x] Framer Motion animations
-- [x] Toast notifications
-- [x] Loading states
-- [x] Error handling
-
-## Future Features 📋
-
-- [ ] 1st user shouldn't be able to swipe until more users are added
-- [ ] Number of swiping users should update automatically in real time
-- [ ] If a user tries to join the session after swiping has started, they cannot join. They should be able to join
-- [ ] When you finish swiping it should give you a screen that summarizes your swipes and asks you to wait for the others to finish swiping
-- [ ] There should be a checkbox in criteria that allows you to turn on "multi-swiping" where it doesn't determine matches until you're done swiping through all movies. To support this need to also add number of swipes to criteria so that doesn't get out of hand (add that as a variable for them to fill in when multi swipe is checked)
-
-- [ ] **Real-time Updates**: Supabase subscriptions for live match notifications
-- [ ] **Friend System**: Add/accept friends functionality
-- [ ] **Session Sharing**: Better code sharing and invites
-
-### Authentication & User Features
-- [ ] User profiles with avatar and preferences
-- [ ] Watch history tracking
-- [ ] Personal watchlists
-- [ ] Movie ratings after watching
-
-### Advanced Matching
-- [ ] Group sessions (3+ people)
-- [ ] Majority/unanimous voting options
-- [ ] Veto functionality
-- [ ] Match statistics
-
-### External Integrations
-- [ ] Letterboxd OAuth and list import
-- [ ] Plex server connection
-- [ ] Streaming availability (JustWatch API)
-- [ ] Social sharing
-
-### Improvements
-- [ ] Mobile app (React Native)
-- [ ] Progressive Web App (PWA)
-- [ ] Offline support
-- [ ] Performance optimizations
-- [ ] Advanced filtering (runtime, platforms)
-- [ ] AI-powered recommendations
+# Session Enhancement Features Implementation Plan
 
 ## Overview
-A collaborative movie selection app where friends can swipe through movies together and find matches, similar to Tinder but for movies. The app integrates with multiple movie databases and personal libraries to create a shared movie pool.
+This plan outlines the implementation of features to improve the collaborative movie swiping experience.
 
-## Phase 1: Project Setup & API Integration
+## Implementation Plan
 
-### 1.1 Core Technologies
-- **Frontend**: Next.js 15 (existing template)
-- **Backend**: Next.js API routes with server actions
-- **Database**: PostgreSQL with Drizzle ORM (existing setup)
-- **Real-time**: Supabase Realtime for live matching
-- **Auth**: Clerk (existing setup)
+### Phase 2: Admin Session Control Features ✅
 
-### 1.2 API Integrations
+**New Requirements**:
+1. Admin should see participant count and manually start the session (not auto-start at 2)
+2. Fix arrow key controls for admin when session first loads
 
-#### TMDb (The Movie Database) - Primary Data Source
-- **Purpose**: Movie metadata, posters, ratings, recommendations
-- **Endpoints needed**:
-  - `/movie/{movie_id}` - Movie details
-  - `/movie/{movie_id}/recommendations` - Similar movies
-  - `/movie/popular`, `/movie/top_rated` - Discovery
-  - `/search/movie` - Search functionality
-- **Implementation**: Store API key in environment variables
+**Tasks**:
+- [x] Add sessionStarted state to track manual session start
+- [x] Update waiting screen to show dynamic participant count
+- [x] Add "Start Session" button for host
+- [x] Fix keyboard handler to use sessionStarted instead of participantCount
+- [x] Update useEffect dependencies for proper keyboard binding
+- [x] Show different UI for host vs participants in waiting screen
+- [x] Test arrow keys work immediately after admin starts session
 
-#### Letterboxd API
-- **Purpose**: User watchlists and custom lists
-- **Auth**: OAuth 2.0 flow
-- **Endpoints needed**:
-  - `/member/{id}/watchlist` - User's watchlist
-  - `/member/{id}/lists` - Custom lists
+**Implementation Details**:
+1. Add `sessionStarted` state to SwipeInterface component
+2. Modify waiting condition to check sessionStarted instead of participant count
+3. Update keyboard handler to respect sessionStarted state
+4. Create different UI experiences for host vs participants
+5. Ensure arrow keys are properly bound after session starts
 
-#### Plex API
-- **Purpose**: Access user's personal movie libraries
-- **Auth**: Plex token authentication
-- **Note**: Users need to provide their server details
+## Completed Tasks
 
-#### OMDb (Optional)
-- **Purpose**: Additional ratings (Rotten Tomatoes, Metacritic)
-- **Implementation**: Supplement TMDb data
+### Phase 2: Admin Session Control Features ✅
+**Completed on**: January 10, 2025
 
-## Phase 2: Database Schema
+**What was implemented**:
+1. **Manual Session Start**: 
+   - Added `sessionStarted` state to track when admin starts the session
+   - Sessions no longer auto-start at 2 participants
+   - Admin has full control over when to begin swiping
 
-### 2.1 Core Tables
+2. **Dynamic Participant Display**:
+   - Shows "X participants waiting" without any limit
+   - Removed the hardcoded "/2" restriction
+   - Supports any number of participants
 
-```sql
--- Movie Sessions
-CREATE TABLE movie_sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at TIMESTAMP DEFAULT NOW(),
-  status VARCHAR(20) DEFAULT 'active', -- active, completed, expired
-  matched_movie_id VARCHAR(50), -- TMDb ID when matched
-  user_ids TEXT[] -- Array of participant user IDs
-);
+3. **Different UI for Host vs Participants**:
+   - Host sees: "Your session is ready!" with Start Session button
+   - Participants see: "Waiting for host to start..."
+   - Clear role differentiation in the UI
 
--- Swipes
-CREATE TABLE swipes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id UUID REFERENCES movie_sessions(id),
-  user_id VARCHAR(255) NOT NULL,
-  movie_id VARCHAR(50) NOT NULL, -- TMDb ID
-  direction VARCHAR(10) NOT NULL, -- 'left' or 'right'
-  swiped_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(session_id, user_id, movie_id)
-);
+4. **Fixed Keyboard Controls**:
+   - Arrow keys now properly activate after admin starts session
+   - Updated keyboard handler to check sessionStarted state
+   - Fixed useEffect dependencies for proper event binding
 
--- Friend Relationships
-CREATE TABLE friendships (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id_1 VARCHAR(255) NOT NULL,
-  user_id_2 VARCHAR(255) NOT NULL,
-  status VARCHAR(20) DEFAULT 'pending', -- pending, accepted, blocked
-  created_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(user_id_1, user_id_2)
-);
+5. **Start Session Button**:
+   - Prominent button with Play icon for hosts
+   - Only appears when at least 1 participant is present
+   - Enables all swipe controls (keyboard and buttons) when clicked
 
--- User Movie Sources
-CREATE TABLE user_movie_sources (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id VARCHAR(255) NOT NULL,
-  source_type VARCHAR(20) NOT NULL, -- 'letterboxd', 'plex'
-  access_token TEXT,
-  refresh_token TEXT,
-  metadata JSONB, -- Store additional config like Plex server URL
-  created_at TIMESTAMP DEFAULT NOW()
-);
+### Phase 1: Initial Session Enhancement Features ✅
 
--- Cached Movies (to reduce API calls)
-CREATE TABLE cached_movies (
-  tmdb_id VARCHAR(50) PRIMARY KEY,
-  data JSONB NOT NULL,
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-```
+#### Feature 1: Prevent Swiping Until 2nd Person Joins
+**Goal**: Ensure collaborative experience by requiring at least 2 participants before swiping
 
-## Phase 3: Core Features Implementation
+**Completed Tasks**:
+- [x] Add a waiting state to SwipeInterface component
+- [x] Create a "Waiting for participants" UI overlay
+- [x] Check participant count before allowing swipes
+- [x] Show session code prominently while waiting
+- [x] Add helpful messaging about sharing the session
 
-### 3.1 Movie Pool Generation Algorithm
+#### Feature 2: Real-time Participant Count Updates
+**Goal**: Automatically update UI when users join/leave without page refresh
 
-```typescript
-interface MoviePoolConfig {
-  sessionId: string;
-  userIds: string[];
-  poolSize: number;
-}
+**Completed Tasks**:
+- [x] Set up real-time subscriptions (implemented polling solution)
+- [x] Create custom hook for session participant tracking
+- [x] Update SwipeInterface to use real-time data
+- [x] Handle connection/disconnection gracefully
+- [x] Test with multiple concurrent users
 
-async function generateMoviePool(config: MoviePoolConfig) {
-  const pool = [];
-  
-  // 1. Shared watchlist/library movies (40% of pool)
-  const sharedMovies = await getSharedMovies(config.userIds);
-  pool.push(...sharedMovies.slice(0, config.poolSize * 0.4));
-  
-  // 2. Recommendations based on liked movies (30% of pool)
-  const recommendations = await getRecommendations(config.userIds);
-  pool.push(...recommendations.slice(0, config.poolSize * 0.3));
-  
-  // 3. Popular/trending movies (30% of pool)
-  const trendingMovies = await getTrendingMovies();
-  pool.push(...trendingMovies.slice(0, config.poolSize * 0.3));
-  
-  // Deduplicate and shuffle
-  return shuffle(deduplicateMovies(pool));
-}
-```
+#### Feature 3: Session Code Display and Sharing
+**Goal**: Make it easy for session creators to share the session code
 
-### 3.2 Real-time Matching System
-
-```typescript
-// Supabase real-time subscription
-const matchingService = {
-  subscribeToSession(sessionId: string, onMatch: Function) {
-    return supabase
-      .channel(`session:${sessionId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'swipes',
-        filter: `session_id=eq.${sessionId}`
-      }, async (payload) => {
-        // Check for matches
-        const match = await checkForMatch(payload.new);
-        if (match) {
-          onMatch(match);
-        }
-      })
-      .subscribe();
-  }
-};
-
-async function checkForMatch(newSwipe: Swipe) {
-  if (newSwipe.direction !== 'right') return null;
-  
-  // Check if other user(s) also swiped right on this movie
-  const otherSwipes = await db
-    .select()
-    .from(swipes)
-    .where(
-      and(
-        eq(swipes.sessionId, newSwipe.sessionId),
-        eq(swipes.movieId, newSwipe.movieId),
-        eq(swipes.direction, 'right'),
-        not(eq(swipes.userId, newSwipe.userId))
-      )
-    );
-  
-  // If all users in session swiped right, it's a match!
-  const session = await getSession(newSwipe.sessionId);
-  if (otherSwipes.length === session.userIds.length - 1) {
-    return { movieId: newSwipe.movieId, sessionId: newSwipe.sessionId };
-  }
-  
-  return null;
-}
-```
-
-## Phase 4: UI Components
-
-### 4.1 Swipe Interface
-- **Card Stack**: Use framer-motion for smooth swipe animations
-- **Movie Card**: Display poster, title, year, rating, genre
-- **Swipe Controls**: Left (pass), Right (like), Up (super like/save for later)
-
-### 4.2 Session Management
-- **Create Session**: Invite friends, set preferences (genres, year range)
-- **Join Session**: Accept invites, see who's participating
-- **Session Status**: Real-time updates on who's swiping
-
-### 4.3 Match Screen
-- **Celebration Animation**: Confetti or similar when match occurs
-- **Movie Details**: Full information, trailer link, where to watch
-- **Action Buttons**: Save to list, start new session, share
-
-## Phase 5: Advanced Features
-
-### 5.1 Filtering & Preferences
-- Genre preferences per session
-- Release year range
-- Minimum rating threshold
-- Runtime limits
-- Available on specific platforms
-
-### 5.2 Group Sessions (3+ people)
-- Require majority or unanimous agreement
-- Show voting progress in real-time
-- "Veto" option for strong dislikes
-
-### 5.3 Smart Recommendations
-- Learn from swipe patterns
-- Weight recommendations based on match history
-- Collaborative filtering between friends
-
-## Phase 6: Implementation Timeline
-
-### Week 1-2: Foundation
-- Set up API integrations
-- Design and implement database schema
-- Create basic authentication flow
-
-### Week 3-4: Core Features
-- Movie pool generation
-- Swipe interface
-- Real-time matching logic
-
-### Week 5-6: Social Features
-- Friend system
-- Session creation/joining
-- Match celebrations
-
-### Week 7-8: Polish & Testing
-- UI/UX refinements
-- Performance optimization
-- Beta testing with friends
+**Completed Tasks**:
+- [x] Implement shortened session codes (8 chars)
+- [x] Update join logic to accept short codes
+- [x] Add session code display to SwipeInterface header
+- [x] Implement copy-to-clipboard functionality
+- [x] Add share button with native sharing API
+- [x] Fix PostgreSQL UUID LIKE operator issue with casting
 
 ## Technical Considerations
 
-### Performance
-- Cache movie data to reduce API calls
-- Implement pagination for large movie pools
-- Use optimistic updates for swipes
+### Database Changes
+- Enable Supabase real-time on `movie_sessions` table
+- Consider adding `short_code` column for better performance (optional)
+- Add index on `id` column for substring searches
 
-### Security
-- Encrypt stored API tokens
-- Validate session participants
-- Rate limit API calls
+### State Management
+- Use React state for UI updates
+- Leverage Supabase real-time for participant tracking
+- Handle edge cases (connection loss, session expiry)
 
-### Scalability
-- Design for horizontal scaling
-- Use connection pooling for database
-- Implement proper caching strategy
+### UI/UX Improvements
+- Clear visual feedback for all states
+- Smooth transitions between waiting and active states
+- Accessible copy/share functionality
+- Mobile-responsive design
 
-## Next Steps
-1. Create environment variables for API keys
-2. Set up Drizzle schema files
-3. Build API service classes
-4. Create swipe UI components
-5. Implement real-time subscriptions
-6. Test with small group of users
+### Error Handling
+- Graceful fallback if real-time connection fails
+- Clear error messages for invalid session codes
+- Handle session expiry during waiting
 
-## Fix Empty String Values in Select Components
+## Testing Plan
+1. Test with multiple users joining simultaneously
+2. Verify real-time updates work across different browsers
+3. Test copy/share functionality on various devices
+4. Ensure keyboard shortcuts are properly disabled while waiting
+5. Test edge cases (network issues, session expiry)
 
-### Problem Identified
-Found Select.Item components with empty string values in the criteria-dialog.tsx file that could cause issues:
-- Line 139: `<SelectItem value="">All genres</SelectItem>`
-- Line 157: `<SelectItem value="">All years</SelectItem>`
+## Estimated Timeline
+- Feature 1 (Prevent early swiping): 2-3 hours
+- Feature 2 (Real-time updates): 3-4 hours
+- Feature 3 (Session code display): 2-3 hours
+- Testing and refinement: 2 hours
 
-Empty string values in Radix UI Select components can cause validation issues and unexpected behavior.
+Total: ~10-12 hours
 
-### Plan to Fix
-
-1. **Update Select.Item values in criteria-dialog.tsx**
-   - [ ] Change empty string value for "All genres" to "all"
-   - [ ] Change empty string value for "All years" to "all"
-
-2. **Update state handling logic**
-   - [ ] Modify the genre state initialization to handle "all" value
-   - [ ] Modify the yearRange state initialization to handle "all" value
-   - [ ] Update the handleSubmit function to skip preferences when "all" is selected
-
-3. **Test the changes**
-   - [ ] Verify that selecting "All genres" properly clears genre filtering
-   - [ ] Verify that selecting "All years" properly clears year filtering
-   - [ ] Ensure the form submission works correctly with the new values
-
-### Technical Details
-The fix involves:
-1. Changing `value=""` to `value="all"` for both Select.Item components
-2. Updating the state initialization to check for "all" instead of empty string
-3. Modifying the handleSubmit to not add preferences when "all" is selected
+## Dependencies
+- Supabase real-time configuration
+- No new npm packages required
+- Uses existing UI components from shadcn/ui
 
 ## Review Section
 
-### Implementation Completed (January 2025)
+### Completed Implementation Summary
 
-All issues have been successfully resolved:
+All three features have been successfully implemented:
 
-1. **Clerk Auth Middleware Issue - FIXED**
-   - Added try-catch error handling in middleware
-   - Added explicit return statement for all code paths
-   - Updated matcher configuration to be more specific
-   - The middleware now properly handles auth() calls without errors
+#### Feature 1: Prevent Swiping Until 2nd Person Joins ✅
+- Added a waiting state overlay that displays when participant count < 2
+- Shows session code prominently with copy and share buttons
+- Displays participant count progress (1/2 participants)
+- Disables all swipe controls (buttons and keyboard) until 2+ participants
+- Includes option for host to cancel session while waiting
 
-2. **Movie Fetching Improvements - IMPLEMENTED**
-   - Added `discoverMovies` method to TMDb API using `/discover/movie` endpoint
-   - Supports filtering by genre, year range, and rating
-   - Implemented pagination that fetches up to 10 pages (200 movies)
-   - Ensures minimum of 50 movies are fetched when available
-   - Falls back to popular movies if filtered results are insufficient
+#### Feature 2: Real-time Participant Count Updates ✅
+- Created `useSessionParticipants` custom hook for polling participant count
+- Implemented API endpoint `/api/sessions/[sessionId]/participants`
+- Updates UI automatically every 3 seconds when participants join/leave
+- Created `SessionWrapper` component to manage real-time state
+- Gracefully handles connection errors with console logging
 
-3. **Change Criteria Feature - ADDED**
-   - Created `CriteriaDialog` component with genre and year range selectors
-   - Added `updateSessionPreferences` server action
-   - Clears existing swipes when criteria changes
-   - Automatically reloads page to fetch new movies
-   - Button is accessible from main swipe interface
+#### Feature 3: Session Code Display and Sharing ✅
+- Implemented 8-character short code support (first 8 chars of UUID)
+- Updated `joinMovieSession` to accept both short codes and full UUIDs
+- Added session code badge in main swipe interface header
+- Implemented copy-to-clipboard with toast confirmation
+- Added native share API support for mobile devices
+- Updated join page UI to clarify 8-character code format
 
-4. **Delete Session Feature - ADDED**
-   - Created `deleteMovieSession` server action with host verification
-   - Deletes all related swipes and match history
-   - Added delete button visible only to session host
-   - Includes confirmation dialog to prevent accidental deletion
-   - Redirects to sessions list after successful deletion
+### Technical Highlights
+- Used polling approach (3-second intervals) instead of WebSockets for simplicity
+- Maintained TypeScript type safety throughout
+- Followed existing code patterns and conventions
+- No new dependencies required
+- All features work together seamlessly
 
-5. **User Experience Improvements - COMPLETED**
-   - Shows informative message when movie pool is exhausted
-   - Distinguishes between "no movies found" and "all movies swiped"
-   - Provides options to change criteria or delete session
-   - Shows current position (e.g., "5 / 50") in the UI
-   - All controls are easily accessible in the status bar
+### Testing Recommendations
+1. Test with multiple browser tabs to simulate multiple users
+2. Verify copy/share functionality on different devices
+3. Test edge cases like session expiry during waiting
+4. Ensure performance with polling mechanism
 
-### Key Technical Changes:
-- Modified `/middleware.ts` to fix Clerk auth detection
-- Enhanced `/lib/api/tmdb.ts` with discover endpoint
-- Upgraded `/lib/api/movie-service.ts` with smart pagination
-- Added two new server actions in `/actions/db/movies-actions.ts`
-- Created new `/app/sessions/[sessionId]/_components/criteria-dialog.tsx`
-- Updated `/app/sessions/[sessionId]/_components/swipe-interface.tsx` with session controls
-- All changes pass TypeScript type checking and ESLint validation
+The implementation successfully enhances the collaborative movie swiping experience by ensuring users wait for others before starting and providing easy session sharing capabilities.
 
-### Testing Notes:
-- The app now properly handles limited movie results for specific genres/years
-- Crime movies from 2020-2025 will fetch additional pages if needed
-- Users can easily change criteria without creating a new session
-- Session hosts can delete sessions to clean up unused data
-- The UI gracefully handles exhausted movie pools

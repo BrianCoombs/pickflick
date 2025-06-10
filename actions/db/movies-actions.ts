@@ -38,21 +38,73 @@ export async function createMovieSession(
   }
 }
 
-export async function joinMovieSession(
+export async function startMovieSession(
   sessionId: string
-): Promise<ActionState<{ session: any }>> {
+): Promise<ActionState<null>> {
   try {
     const { userId } = await auth()
     if (!userId) {
       return { isSuccess: false, message: "Unauthorized" }
     }
 
-    // Get the session
+    // Verify the user is the host
     const [session] = await db
       .select()
       .from(movieSessions)
       .where(eq(movieSessions.id, sessionId))
       .limit(1)
+
+    if (!session) {
+      return { isSuccess: false, message: "Session not found" }
+    }
+
+    if (session.hostUserId !== userId) {
+      return { isSuccess: false, message: "Only the host can start the session" }
+    }
+
+    // Update session status to 'started'
+    await db
+      .update(movieSessions)
+      .set({
+        status: "started"
+      })
+      .where(eq(movieSessions.id, sessionId))
+
+    return { isSuccess: true, message: "Session started successfully", data: null }
+  } catch (error) {
+    console.error("Error starting movie session:", error)
+    return { isSuccess: false, message: "Failed to start session" }
+  }
+}
+
+export async function joinMovieSession(
+  sessionCode: string
+): Promise<ActionState<{ session: any; sessionId: string }>> {
+  try {
+    const { userId } = await auth()
+    if (!userId) {
+      return { isSuccess: false, message: "Unauthorized" }
+    }
+
+    // Handle both full UUID and short code (8 chars)
+    let sessions
+    if (sessionCode.length === 8) {
+      // Short code - search for sessions starting with this code (case-insensitive)
+      sessions = await db
+        .select()
+        .from(movieSessions)
+        .where(sql`LOWER(${movieSessions.id}::text) LIKE LOWER(${sessionCode + '%'})`)
+        .limit(1)
+    } else {
+      // Full UUID
+      sessions = await db
+        .select()
+        .from(movieSessions)
+        .where(eq(movieSessions.id, sessionCode))
+        .limit(1)
+    }
+
+    const session = sessions[0]
 
     if (!session) {
       return { isSuccess: false, message: "Session not found" }
@@ -69,10 +121,10 @@ export async function joinMovieSession(
         .set({
           userIds: [...session.userIds, userId],
         })
-        .where(eq(movieSessions.id, sessionId))
+        .where(eq(movieSessions.id, session.id))
     }
 
-    return { isSuccess: true, message: "Joined session successfully", data: { session } }
+    return { isSuccess: true, message: "Joined session successfully", data: { session, sessionId: session.id } }
   } catch (error) {
     console.error("Error joining movie session:", error)
     return { isSuccess: false, message: "Failed to join session" }
