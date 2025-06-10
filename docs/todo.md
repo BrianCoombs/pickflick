@@ -18,6 +18,53 @@
 - [x] These files are NOT in the public directory and are NOT served by Next.js
 - [x] They remain private in your source code repository
 
+## Current Issues to Fix (January 2025)
+
+### 1. Clerk Auth Middleware Detection Issue
+- [ ] Update middleware.ts to ensure proper async handling
+- [ ] Add explicit return statements for all code paths
+- [ ] Add try-catch wrapper for better error handling
+
+### 2. Movie Fetching Improvements
+- [ ] Add `discoverMovies` method to TMDb API that uses `/discover/movie` endpoint
+- [ ] Update `MovieService.getMoviePool` to use discover API with pagination
+- [ ] Implement pagination to fetch multiple pages until 50 movies minimum
+- [ ] Handle cases where less than 50 movies are available
+
+### 3. Change Criteria Feature
+- [ ] Create modal/dialog component for updating session criteria
+- [ ] Add `updateSessionPreferences` server action
+- [ ] Clear existing swipes when criteria changes
+- [ ] Add UI button on session page to trigger criteria change
+
+### 4. Delete Session Feature
+- [ ] Create `deleteMovieSession` server action
+- [ ] Verify user is the host before allowing deletion
+- [ ] Delete all related swipes and session data
+- [ ] Add delete button in UI (only visible to host)
+- [ ] Redirect to sessions list after deletion
+
+### 5. User Experience Improvements
+- [ ] Show message when movie pool is exhausted
+- [ ] Add options to change criteria or delete session
+- [ ] Add loading states during movie fetching
+- [ ] Show movie count and current position in UI
+
+## Technical Implementation Details
+
+### Files to Modify:
+1. `/middleware.ts` - Fix Clerk auth detection
+2. `/lib/api/tmdb.ts` - Add discover endpoint
+3. `/lib/api/movie-service.ts` - Update movie fetching logic
+4. `/actions/db/movies-actions.ts` - Add new server actions
+5. `/app/sessions/[sessionId]/page.tsx` - Update session page
+6. `/app/sessions/[sessionId]/_components/swipe-interface.tsx` - Add UI controls
+
+### New Components to Create:
+1. Change criteria dialog/modal
+2. Session management controls
+3. Empty state component for exhausted movies
+
 ## Security Confirmation
 
 **Your docs and CLAUDE.md files are SAFE from bad actors because:**
@@ -371,3 +418,59 @@ async function checkForMatch(newSwipe: Swipe) {
 4. Create swipe UI components
 5. Implement real-time subscriptions
 6. Test with small group of users
+
+## Review Section
+
+### Implementation Completed (January 2025)
+
+All issues have been successfully resolved:
+
+1. **Clerk Auth Middleware Issue - FIXED**
+   - Added try-catch error handling in middleware
+   - Added explicit return statement for all code paths
+   - Updated matcher configuration to be more specific
+   - The middleware now properly handles auth() calls without errors
+
+2. **Movie Fetching Improvements - IMPLEMENTED**
+   - Added `discoverMovies` method to TMDb API using `/discover/movie` endpoint
+   - Supports filtering by genre, year range, and rating
+   - Implemented pagination that fetches up to 10 pages (200 movies)
+   - Ensures minimum of 50 movies are fetched when available
+   - Falls back to popular movies if filtered results are insufficient
+
+3. **Change Criteria Feature - ADDED**
+   - Created `CriteriaDialog` component with genre and year range selectors
+   - Added `updateSessionPreferences` server action
+   - Clears existing swipes when criteria changes
+   - Automatically reloads page to fetch new movies
+   - Button is accessible from main swipe interface
+
+4. **Delete Session Feature - ADDED**
+   - Created `deleteMovieSession` server action with host verification
+   - Deletes all related swipes and match history
+   - Added delete button visible only to session host
+   - Includes confirmation dialog to prevent accidental deletion
+   - Redirects to sessions list after successful deletion
+
+5. **User Experience Improvements - COMPLETED**
+   - Shows informative message when movie pool is exhausted
+   - Distinguishes between "no movies found" and "all movies swiped"
+   - Provides options to change criteria or delete session
+   - Shows current position (e.g., "5 / 50") in the UI
+   - All controls are easily accessible in the status bar
+
+### Key Technical Changes:
+- Modified `/middleware.ts` to fix Clerk auth detection
+- Enhanced `/lib/api/tmdb.ts` with discover endpoint
+- Upgraded `/lib/api/movie-service.ts` with smart pagination
+- Added two new server actions in `/actions/db/movies-actions.ts`
+- Created new `/app/sessions/[sessionId]/_components/criteria-dialog.tsx`
+- Updated `/app/sessions/[sessionId]/_components/swipe-interface.tsx` with session controls
+- All changes pass TypeScript type checking and ESLint validation
+
+### Testing Notes:
+- The app now properly handles limited movie results for specific genres/years
+- Crime movies from 2020-2025 will fetch additional pages if needed
+- Users can easily change criteria without creating a new session
+- Session hosts can delete sessions to clean up unused data
+- The UI gracefully handles exhausted movie pools

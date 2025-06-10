@@ -5,28 +5,45 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { X, Heart, Star, Users, Calendar, Clock } from "lucide-react"
-import { swipeMovie } from "@/actions/db/movies-actions"
+import { X, Heart, Star, Users, Calendar, Clock, Trash2 } from "lucide-react"
+import { swipeMovie, deleteMovieSession } from "@/actions/db/movies-actions"
 import { toast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { TMDbAPI } from "@/lib/api/tmdb"
 import type { Movie } from "@/lib/api/tmdb"
+import { CriteriaDialog } from "./criteria-dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from "@/components/ui/alert-dialog"
 
 interface SwipeInterfaceProps {
   sessionId: string
   movies: Movie[]
   participantCount: number
+  isHost: boolean
+  preferences?: any
 }
 
 export default function SwipeInterface({
   sessionId,
   movies,
-  participantCount
+  participantCount,
+  isHost,
+  preferences
 }: SwipeInterfaceProps) {
   const router = useRouter()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [direction, setDirection] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [deletingSession, setDeletingSession] = useState(false)
 
   const currentMovie = movies[currentIndex]
   const hasMoreMovies = currentIndex < movies.length - 1
@@ -100,10 +117,81 @@ export default function SwipeInterface({
     return () => window.removeEventListener("keydown", handleKeyPress)
   }, [currentIndex, loading])
 
+  const handleDeleteSession = async () => {
+    setDeletingSession(true)
+    try {
+      const result = await deleteMovieSession(sessionId)
+      if (result.isSuccess) {
+        toast({
+          title: "Session deleted",
+          description: "The session has been deleted successfully"
+        })
+        router.push("/sessions")
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete session",
+        variant: "destructive"
+      })
+    } finally {
+      setDeletingSession(false)
+    }
+  }
+
   if (!currentMovie) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">No movies available</p>
+      <div className="flex h-full flex-col items-center justify-center gap-6 p-8">
+        <div className="text-center">
+          <h2 className="mb-2 text-2xl font-semibold">No more movies!</h2>
+          <p className="text-muted-foreground mb-6">
+            {movies.length === 0
+              ? "No movies found matching your criteria."
+              : "You've swiped through all available movies."}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <CriteriaDialog
+            sessionId={sessionId}
+            currentPreferences={preferences}
+          />
+
+          {isHost && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="mr-2 size-4" />
+                  Delete Session
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this session?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete the session and all swipe data.
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteSession}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
     )
   }
@@ -115,13 +203,51 @@ export default function SwipeInterface({
     <div className="relative flex h-full flex-col items-center justify-center p-4">
       {/* Status bar */}
       <div className="absolute inset-x-4 top-4 flex items-center justify-between">
-        <Badge variant="secondary" className="flex items-center gap-2">
-          <Users className="size-3" />
-          {participantCount} swiping
-        </Badge>
-        <p className="text-muted-foreground text-sm">
-          {currentIndex + 1} / {movies.length}
-        </p>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="flex items-center gap-2">
+            <Users className="size-3" />
+            {participantCount} swiping
+          </Badge>
+          <p className="text-muted-foreground text-sm">
+            {currentIndex + 1} / {movies.length}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <CriteriaDialog
+            sessionId={sessionId}
+            currentPreferences={preferences}
+          />
+
+          {isHost && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-8">
+                  <Trash2 className="size-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this session?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete the session and all swipe data.
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteSession}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={deletingSession}
+                  >
+                    {deletingSession ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
 
       {/* Movie card */}

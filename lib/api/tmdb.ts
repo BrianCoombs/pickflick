@@ -150,6 +150,49 @@ export class TMDbAPI {
     )
   }
 
+  async discoverMovies(params: {
+    page?: number
+    withGenres?: number[]
+    primaryReleaseDateGte?: string // Format: YYYY-MM-DD
+    primaryReleaseDateLte?: string // Format: YYYY-MM-DD
+    voteAverageGte?: number
+    sortBy?: string
+  }): Promise<{
+    results: Movie[]
+    total_pages: number
+    total_results: number
+  }> {
+    const queryParams: Record<string, string> = {
+      page: (params.page || 1).toString(),
+      sort_by: params.sortBy || "popularity.desc",
+      "vote_count.gte": "50" // Ensure movies have enough votes
+    }
+
+    if (params.withGenres && params.withGenres.length > 0) {
+      queryParams.with_genres = params.withGenres.join(",")
+    }
+
+    if (params.primaryReleaseDateGte) {
+      queryParams["primary_release_date.gte"] = params.primaryReleaseDateGte
+    }
+
+    if (params.primaryReleaseDateLte) {
+      queryParams["primary_release_date.lte"] = params.primaryReleaseDateLte
+    }
+
+    if (params.voteAverageGte) {
+      queryParams["vote_average.gte"] = params.voteAverageGte.toString()
+    }
+
+    const response = await this.fetch<any>("/discover/movie", queryParams)
+
+    return {
+      results: z.array(MovieSchema).parse(response.results),
+      total_pages: response.total_pages,
+      total_results: response.total_results
+    }
+  }
+
   static getPosterUrl(
     posterPath: string | null,
     size: "w200" | "w500" | "original" = "w500"

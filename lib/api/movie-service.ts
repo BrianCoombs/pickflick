@@ -111,48 +111,126 @@ export class MovieService {
   }): Promise<Movie[]> {
     const pool: Movie[] = []
     const movieIds = new Set<number>()
+    const targetSize = Math.max(config.poolSize, 50) // Minimum 50 movies
 
-    // For now, just mix popular and top-rated movies
-    // TODO: Integrate with user watchlists from Letterboxd/Plex
-    const [popular, topRated] = await Promise.all([
-      this.getPopularMovies(),
-      this.getTopRatedMovies()
-    ])
+    // If we have filters, use the discover API
+    if (
+      config.filters &&
+      (config.filters.genres?.length ||
+        config.filters.minYear ||
+        config.filters.maxYear)
+    ) {
+      // Convert filters to API format
+      const discoverParams: Parameters<typeof this.tmdb.discoverMovies>[0] = {
+        page: 1,
+        withGenres: config.filters.genres,
+        voteAverageGte: config.filters.minRating || 6,
+        sortBy: "popularity.desc"
+      }
 
-    // Add movies ensuring no duplicates
-    const addMovies = (movies: Movie[], limit: number) => {
-      for (const movie of movies) {
-        if (movieIds.has(movie.id)) continue
+      // Handle year filtering
+      if (config.filters.minYear) {
+        discoverParams.primaryReleaseDateGte = `${config.filters.minYear}-01-01`
+      }
+      if (config.filters.maxYear) {
+        discoverParams.primaryReleaseDateLte = `${config.filters.maxYear}-12-31`
+      }
 
-        // Apply filters
-        if (config.filters) {
-          const year = new Date(movie.release_date).getFullYear()
+      // Fetch movies with pagination until we have enough
+      let page = 1
+      let totalPages = 1
 
-          if (config.filters.minYear && year < config.filters.minYear) continue
-          if (config.filters.maxYear && year > config.filters.maxYear) continue
-          if (
-            config.filters.minRating &&
-            movie.vote_average < config.filters.minRating
-          )
-            continue
-          if (config.filters.genres && movie.genre_ids) {
-            const hasGenre = config.filters.genres.some(g =>
-              movie.genre_ids?.includes(g)
-            )
-            if (!hasGenre) continue
+      while (pool.length < targetSize && page <= totalPages && page <= 10) {
+        // Max 10 pages to avoid too many API calls
+        try {
+          const result = await this.tmdb.discoverMovies({
+            ...discoverParams,
+            page
+          })
+
+          totalPages = result.total_pages
+
+          // Add unique movies to pool
+          for (const movie of result.results) {
+            if (!movieIds.has(movie.id)) {
+              movieIds.add(movie.id)
+              pool.push(movie)
+            }
+          }
+
+          page++
+        } catch (error) {
+          console.error(`Error fetching page ${page}:`, error)
+          break
+        }
+      }
+
+      // If we still don't have enough movies, supplement with popular movies
+      if (pool.length < targetSize) {
+        const supplementPage = 1
+        const popular = await this.getPopularMovies(supplementPage)
+
+        for (const movie of popular) {
+          if (!movieIds.has(movie.id)) {
+            // Apply basic year filter if specified
+            if (config.filters) {
+              const year = new Date(movie.release_date).getFullYear()
+              if (config.filters.minYear && year < config.filters.minYear)
+                continue
+              if (config.filters.maxYear && year > config.filters.maxYear)
+                continue
+              if (
+                config.filters.minRating &&
+                movie.vote_average < config.filters.minRating
+              )
+                continue
+            }
+
+            movieIds.add(movie.id)
+            pool.push(movie)
+
+            if (pool.length >= targetSize) break
           }
         }
-
-        movieIds.add(movie.id)
-        pool.push(movie)
-
-        if (pool.length >= limit) break
       }
-    }
+    } else {
+      // No specific filters, use mix of popular and top-rated
+      const [popular, topRated] = await Promise.all([
+        this.getPopularMovies(),
+        this.getTopRatedMovies()
+      ])
 
-    // Mix different sources
-    addMovies(popular, Math.floor(config.poolSize * 0.5))
-    addMovies(topRated, Math.floor(config.poolSize * 0.5))
+      // Add movies ensuring no duplicates
+      const addMovies = (movies: Movie[], limit: number) => {
+        for (const movie of movies) {
+          if (movieIds.has(movie.id)) continue
+
+          // Apply basic filters if any
+          if (config.filters) {
+            const year = new Date(movie.release_date).getFullYear()
+
+            if (config.filters.minYear && year < config.filters.minYear)
+              continue
+            if (config.filters.maxYear && year > config.filters.maxYear)
+              continue
+            if (
+              config.filters.minRating &&
+              movie.vote_average < config.filters.minRating
+            )
+              continue
+          }
+
+          movieIds.add(movie.id)
+          pool.push(movie)
+
+          if (pool.length >= limit) break
+        }
+      }
+
+      // Mix different sources
+      addMovies(popular, Math.floor(targetSize * 0.5))
+      addMovies(topRated, Math.floor(targetSize * 0.5))
+    }
 
     // Shuffle the pool
     return pool.sort(() => Math.random() - 0.5).slice(0, config.poolSize)

@@ -306,3 +306,96 @@ export async function getSessionHistory(): Promise<ActionState<any>> {
     return { isSuccess: false, message: "Failed to get history" }
   }
 }
+
+export async function updateSessionPreferences(
+  sessionId: string,
+  preferences: any
+): Promise<ActionState<any>> {
+  try {
+    const { userId } = await auth()
+    if (!userId) {
+      return { isSuccess: false, message: "Unauthorized" }
+    }
+
+    // Get session to verify user is part of it
+    const [session] = await db
+      .select()
+      .from(movieSessions)
+      .where(eq(movieSessions.id, sessionId))
+      .limit(1)
+
+    if (!session) {
+      return { isSuccess: false, message: "Session not found" }
+    }
+
+    if (!session.userIds.includes(userId)) {
+      return { isSuccess: false, message: "You are not part of this session" }
+    }
+
+    // Update preferences
+    await db
+      .update(movieSessions)
+      .set({
+        preferences
+      })
+      .where(eq(movieSessions.id, sessionId))
+
+    // Clear existing swipes when preferences change
+    await db
+      .delete(swipes)
+      .where(eq(swipes.sessionId, sessionId))
+
+    revalidatePath(`/sessions/${sessionId}`)
+    return { isSuccess: true, message: "Preferences updated successfully", data: null }
+  } catch (error) {
+    console.error("Error updating session preferences:", error)
+    return { isSuccess: false, message: "Failed to update preferences" }
+  }
+}
+
+export async function deleteMovieSession(
+  sessionId: string
+): Promise<ActionState<any>> {
+  try {
+    const { userId } = await auth()
+    if (!userId) {
+      return { isSuccess: false, message: "Unauthorized" }
+    }
+
+    // Get session to verify user is the host
+    const [session] = await db
+      .select()
+      .from(movieSessions)
+      .where(eq(movieSessions.id, sessionId))
+      .limit(1)
+
+    if (!session) {
+      return { isSuccess: false, message: "Session not found" }
+    }
+
+    if (session.hostUserId !== userId) {
+      return { isSuccess: false, message: "Only the host can delete the session" }
+    }
+
+    // Delete all swipes for this session
+    await db
+      .delete(swipes)
+      .where(eq(swipes.sessionId, sessionId))
+
+    // Delete any match history
+    await db
+      .delete(matchHistory)
+      .where(eq(matchHistory.sessionId, sessionId))
+
+    // Delete the session
+    await db
+      .delete(movieSessions)
+      .where(eq(movieSessions.id, sessionId))
+
+    revalidatePath("/sessions")
+    return { isSuccess: true, message: "Session deleted successfully", data: null }
+  } catch (error) {
+    console.error("Error deleting session:", error)
+    return { isSuccess: false, message: "Failed to delete session" }
+  }
+}

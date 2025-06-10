@@ -56,6 +56,8 @@ export default async function SessionPage({ params }: SessionPageProps) {
         sessionId={sessionId}
         movies={movies}
         participantCount={session.userIds.length}
+        isHost={session.hostUserId === userId}
+        preferences={session.preferences}
       />
     </div>
   )
