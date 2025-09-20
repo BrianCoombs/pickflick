@@ -1,0 +1,45 @@
+# Keep PickFlick Supabase database active
+# Free tier projects pause after 7 days of inactivity
+# This workflow pings the database every 48 hours to prevent auto-pausing
+
+name: PickFlick Database Keepalive
+
+on:
+  schedule:
+    # Run every 48 hours at 2 AM UTC
+    - cron: "0 2 */2 * *"
+  workflow_dispatch: # Allow manual runs from GitHub Actions tab
+
+jobs:
+  ping-database:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Keep PickFlick database active
+        run: |
+          # Ping the heartbeat table via Supabase REST API
+          response=$(curl -sS -X GET \
+            "${SUPABASE_URL}/rest/v1/heartbeat?select=id,last_ping" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "Accept: application/json" \
+            -w "\n%{http_code}")
+
+          # Extract HTTP status code
+          http_code=$(echo "$response" | tail -n 1)
+          body=$(echo "$response" | head -n -1)
+
+          # Check if request was successful
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Successfully pinged PickFlick database"
+            echo "Response: $body"
+          else
+            echo "❌ Failed to ping database"
+            echo "HTTP Status: $http_code"
+            echo "Response: $body"
+            exit 1
+          fi
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
