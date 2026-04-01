@@ -16,9 +16,11 @@ import {
 import { useUser } from "@/hooks/use-user"
 import { signOutAction } from "@/app/(auth)/login/actions"
 import { LogOut, User } from "lucide-react"
+import { useTransition } from "react"
 
 export function NavUser() {
   const { user } = useUser()
+  const [, startTransition] = useTransition()
 
   return (
     <SidebarMenu>
@@ -30,7 +32,7 @@ export function NavUser() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             <DropdownMenuItem
-              onClick={() => signOutAction()}
+              onClick={() => startTransition(() => signOutAction())}
               className="cursor-pointer"
             >
               <LogOut className="mr-2 size-4" />

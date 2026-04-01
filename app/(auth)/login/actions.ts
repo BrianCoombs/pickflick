@@ -23,13 +23,18 @@ export async function loginAction(formData: FormData) {
 export async function signupAction(formData: FormData) {
   const supabase = await createClient()
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: formData.get("email") as string,
     password: formData.get("password") as string
   })
 
   if (error) {
     return { error: error.message }
+  }
+
+  // If email confirmation is required, user exists but session doesn't
+  if (data.user && !data.session) {
+    return { success: "Check your email to confirm your account." }
   }
 
   revalidatePath("/", "layout")

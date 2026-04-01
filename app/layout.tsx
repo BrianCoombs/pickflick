@@ -14,7 +14,7 @@ import { PostHogUserIdentify } from "@/components/utilities/posthog/posthog-user
 import { Providers } from "@/components/utilities/providers"
 import { TailwindIndicator } from "@/components/utilities/tailwind-indicator"
 import { cn } from "@/lib/utils"
-import { createClient } from "@/lib/supabase/server"
+import { getAuthenticatedUser } from "@/lib/supabase/server"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
@@ -32,10 +32,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const {
-    data: { user }
-  } = await supabase.auth.getUser()
+  const user = await getAuthenticatedUser()
 
   if (user) {
     const profileRes = await getProfileByUserIdAction(user.id)

@@ -17,13 +17,14 @@ import { useUser } from "@/hooks/use-user"
 import { signOutAction } from "@/app/(auth)/login/actions"
 import { Menu, Film, X, LogOut, User } from "lucide-react"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { ThemeSwitcher } from "./utilities/theme-switcher"
 
 const signedInLinks = [{ href: "/sessions", label: "Sessions" }]
 
 export default function Header() {
   const { user } = useUser()
+  const [, startTransition] = useTransition()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
 
@@ -101,7 +102,7 @@ export default function Header() {
                   {user.email}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => signOutAction()}
+                  onClick={() => startTransition(() => signOutAction())}
                   className="cursor-pointer"
                 >
                   <LogOut className="mr-2 size-4" />

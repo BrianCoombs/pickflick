@@ -24,7 +24,10 @@ import { signupAction } from "../login/actions"
 
 export default function SignUpPage() {
   const [state, formAction, isPending] = useActionState(
-    async (_prev: { error: string } | null, formData: FormData) => {
+    async (
+      _prev: { error?: string; success?: string } | null,
+      formData: FormData
+    ) => {
       const result = await signupAction(formData)
       return result ?? null
     },
@@ -46,6 +49,10 @@ export default function SignUpPage() {
         <CardContent className="space-y-4">
           {state?.error && (
             <p className="text-destructive text-sm">{state.error}</p>
+          )}
+
+          {state?.success && (
+            <p className="text-sm text-green-600">{state.success}</p>
           )}
 
           <div className="space-y-2">

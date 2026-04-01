@@ -16,7 +16,7 @@ export const movieSessions = pgTable("movie_sessions", {
   expiresAt: timestamp("expires_at").notNull(), // Sessions expire after inactivity
   status: varchar("status", { length: 20 }).default("active").notNull(), // active, completed, expired
   matchedMovieId: varchar("matched_movie_id", { length: 50 }), // TMDb ID when matched
-  hostUserId: varchar("host_user_id", { length: 255 }).notNull(), // Clerk user ID
+  hostUserId: varchar("host_user_id", { length: 255 }).notNull(),
   userIds: text("user_ids").array().notNull(), // Array of participant user IDs
   preferences: jsonb("preferences"), // Session preferences (genres, year range, etc.)
   moviePool: jsonb("movie_pool") // Pre-shuffled array of movie IDs for consistent ordering
