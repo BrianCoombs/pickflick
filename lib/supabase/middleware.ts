@@ -36,9 +36,10 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Do not put code between createServerClient and getClaims()
-  const { data } = await supabase.auth.getClaims()
-  const user = data?.claims
+  // Do not put code between createServerClient and getUser()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
 
   const isProtected = protectedPaths.some(path =>
     request.nextUrl.pathname.startsWith(path)
