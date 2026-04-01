@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation"
-import { auth } from "@clerk/nextjs/server"
+import { getAuthenticatedUser } from "@/lib/supabase/server"
 import { db } from "@/db/db"
 import { movieSessions } from "@/db/schema"
 import { eq } from "drizzle-orm"
@@ -13,11 +13,12 @@ interface SessionPageProps {
 }
 
 export default async function SessionPage({ params }: SessionPageProps) {
-  const { userId } = await auth()
+  const user = await getAuthenticatedUser()
 
-  if (!userId) {
+  if (!user) {
     redirect("/login")
   }
+  const userId = user.id
 
   const { sessionId } = await params
 

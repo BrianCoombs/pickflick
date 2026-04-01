@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { getAuthenticatedUser } from "@/lib/supabase/server"
 import { db } from "@/db/db"
 import { movieSessions } from "@/db/schema"
 import { eq } from "drizzle-orm"
@@ -9,10 +9,11 @@ export async function GET(
   context: { params: Promise<{ sessionId: string }> }
 ) {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const user = await getAuthenticatedUser()
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+    const userId = user.id
 
     const { sessionId } = await context.params
 

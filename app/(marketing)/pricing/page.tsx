@@ -16,10 +16,11 @@ import {
   CardTitle
 } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { auth } from "@clerk/nextjs/server"
+import { getAuthenticatedUser } from "@/lib/supabase/server"
 
 export default async function PricingPage() {
-  const { userId } = await auth()
+  const user = await getAuthenticatedUser()
+  const userId = user?.id ?? null
 
   return (
     <div className="container mx-auto py-12">

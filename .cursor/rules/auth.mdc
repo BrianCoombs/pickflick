@@ -1,14 +1,19 @@
 ---
 description: Follow these rules when working on auth.
-globs: 
+globs:
 ---
 ### Auth Rules
 
 Follow these rules when working on auth.
 
-It uses Clerk for authentication.
+It uses Supabase Auth for authentication.
 
 #### General Rules
 
-- Import the auth helper with `import { auth } from "@clerk/nextjs/server"` in server components
-- await the auth helper in server action
+- Import the server client with `import { createClient } from "@/lib/supabase/server"` or `import { getAuthenticatedUser } from "@/lib/supabase/server"` in server components and actions
+- Import the browser client with `import { createClient } from "@/lib/supabase/client"` in client components
+- Use the `useUser()` hook from `@/hooks/use-user` in client components to get the current user
+- Use `getAuthenticatedUser()` in server actions for a quick auth check
+- Auth state is managed through cookies — no React context provider needed
+- Middleware at `/lib/supabase/middleware.ts` handles session refresh and route protection
+- Login/signup server actions are in `/app/(auth)/login/actions.ts`

@@ -1,6 +1,6 @@
 "use server"
 
-import { auth } from "@clerk/nextjs/server"
+import { getAuthenticatedUser } from "@/lib/supabase/server"
 import { db } from "@/db/db"
 import { movieSessions, swipes, friendships, matchHistory } from "@/db/schema"
 import { and, eq, or, desc, sql } from "drizzle-orm"
@@ -13,10 +13,11 @@ export async function createMovieSession(
   preferences?: any
 ): Promise<ActionState<{ sessionId: string }>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const user = await getAuthenticatedUser()
+    if (!user) {
       return { isSuccess: false, message: "Unauthorized" }
     }
+    const userId = user.id
 
     // Ensure the host is included in the session
     const allUserIds = Array.from(new Set([userId, ...userIds]))
@@ -55,10 +56,11 @@ export async function startMovieSession(
   sessionId: string
 ): Promise<ActionState<null>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const user = await getAuthenticatedUser()
+    if (!user) {
       return { isSuccess: false, message: "Unauthorized" }
     }
+    const userId = user.id
 
     // Verify the user is the host
     const [session] = await db
@@ -94,10 +96,11 @@ export async function joinMovieSession(
   sessionCode: string
 ): Promise<ActionState<{ session: any; sessionId: string }>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const user = await getAuthenticatedUser()
+    if (!user) {
       return { isSuccess: false, message: "Unauthorized" }
     }
+    const userId = user.id
 
     // Handle both full UUID and short code (8 chars)
     let sessions
@@ -150,10 +153,11 @@ export async function swipeMovie(
   direction: "left" | "right" | "super"
 ): Promise<ActionState<{ matched: boolean; movieId?: string }>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const user = await getAuthenticatedUser()
+    if (!user) {
       return { isSuccess: false, message: "Unauthorized" }
     }
+    const userId = user.id
 
     // Insert swipe
     await db
@@ -234,10 +238,11 @@ async function checkForMatch(sessionId: string, movieId: string): Promise<boolea
 
 export async function getFriends(): Promise<ActionState<any>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const user = await getAuthenticatedUser()
+    if (!user) {
       return { isSuccess: false, message: "Unauthorized" }
     }
+    const userId = user.id
 
     const friends = await db
       .select()
@@ -263,10 +268,11 @@ export async function sendFriendRequest(
   targetUserId: string
 ): Promise<ActionState<any>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const user = await getAuthenticatedUser()
+    if (!user) {
       return { isSuccess: false, message: "Unauthorized" }
     }
+    const userId = user.id
 
     // Ensure user1 < user2 for consistency
     const [user1, user2] = [userId, targetUserId].sort()
@@ -292,10 +298,11 @@ export async function acceptFriendRequest(
   friendshipId: string
 ): Promise<ActionState<any>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const user = await getAuthenticatedUser()
+    if (!user) {
       return { isSuccess: false, message: "Unauthorized" }
     }
+    const userId = user.id
 
     const [friendship] = await db
       .update(friendships)
@@ -323,10 +330,11 @@ export async function acceptFriendRequest(
 
 export async function getActiveSessions(): Promise<ActionState<any>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const user = await getAuthenticatedUser()
+    if (!user) {
       return { isSuccess: false, message: "Unauthorized" }
     }
+    const userId = user.id
 
     const sessions = await db
       .select()
@@ -348,10 +356,11 @@ export async function getActiveSessions(): Promise<ActionState<any>> {
 
 export async function getSessionHistory(): Promise<ActionState<any>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const user = await getAuthenticatedUser()
+    if (!user) {
       return { isSuccess: false, message: "Unauthorized" }
     }
+    const userId = user.id
 
     const sessions = await db
       .select()
@@ -377,10 +386,11 @@ export async function updateSessionPreferences(
   preferences: any
 ): Promise<ActionState<any>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const user = await getAuthenticatedUser()
+    if (!user) {
       return { isSuccess: false, message: "Unauthorized" }
     }
+    const userId = user.id
 
     // Get session to verify user is part of it
     const [session] = await db
@@ -434,10 +444,11 @@ export async function deleteMovieSession(
   sessionId: string
 ): Promise<ActionState<any>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const user = await getAuthenticatedUser()
+    if (!user) {
       return { isSuccess: false, message: "Unauthorized" }
     }
+    const userId = user.id
 
     // Get session to verify user is the host
     const [session] = await db

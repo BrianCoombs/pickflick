@@ -14,8 +14,7 @@ import { PostHogUserIdentify } from "@/components/utilities/posthog/posthog-user
 import { Providers } from "@/components/utilities/providers"
 import { TailwindIndicator } from "@/components/utilities/tailwind-indicator"
 import { cn } from "@/lib/utils"
-import { ClerkProvider } from "@clerk/nextjs"
-import { auth } from "@clerk/nextjs/server"
+import { createClient } from "@/lib/supabase/server"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
@@ -33,41 +32,42 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { userId } = await auth()
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
 
-  if (userId) {
-    const profileRes = await getProfileByUserIdAction(userId)
+  if (user) {
+    const profileRes = await getProfileByUserIdAction(user.id)
     if (!profileRes.isSuccess) {
-      await createProfileAction({ userId })
+      await createProfileAction({ userId: user.id })
     }
   }
 
   return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body
-          className={cn(
-            "bg-background mx-auto min-h-screen w-full scroll-smooth antialiased",
-            inter.className
-          )}
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={cn(
+          "bg-background mx-auto min-h-screen w-full scroll-smooth antialiased",
+          inter.className
+        )}
+      >
+        <Providers
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
         >
-          <Providers
-            attribute="class"
-            defaultTheme="light"
-            enableSystem={false}
-            disableTransitionOnChange
-          >
-            <PostHogUserIdentify />
-            <PostHogPageview />
+          <PostHogUserIdentify />
+          <PostHogPageview />
 
-            {children}
+          {children}
 
-            <TailwindIndicator />
+          <TailwindIndicator />
 
-            <Toaster />
-          </Providers>
-        </body>
-      </html>
-    </ClerkProvider>
+          <Toaster />
+        </Providers>
+      </body>
+    </html>
   )
 }

@@ -8,13 +8,14 @@ This client component provides the header for the app.
 
 import { Button } from "@/components/ui/button"
 import {
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  SignUpButton,
-  UserButton
-} from "@clerk/nextjs"
-import { Menu, Film, X } from "lucide-react"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu"
+import { useUser } from "@/hooks/use-user"
+import { signOutAction } from "@/app/(auth)/login/actions"
+import { Menu, Film, X, LogOut, User } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { ThemeSwitcher } from "./utilities/theme-switcher"
@@ -22,6 +23,7 @@ import { ThemeSwitcher } from "./utilities/theme-switcher"
 const signedInLinks = [{ href: "/sessions", label: "Sessions" }]
 
 export default function Header() {
+  const { user } = useUser()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
 
@@ -55,8 +57,8 @@ export default function Header() {
         </div>
 
         <nav className="absolute left-1/2 hidden -translate-x-1/2 space-x-2 font-semibold md:flex">
-          <SignedIn>
-            {signedInLinks.map(link => (
+          {user &&
+            signedInLinks.map(link => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -65,27 +67,49 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
-          </SignedIn>
         </nav>
 
         <div className="flex items-center space-x-4">
           <ThemeSwitcher />
 
-          <SignedOut>
-            <SignInButton>
-              <Button variant="outline">Login</Button>
-            </SignInButton>
+          {!user && (
+            <>
+              <Link href="/login">
+                <Button variant="outline">Login</Button>
+              </Link>
 
-            <SignUpButton>
-              <Button className="bg-blue-500 hover:bg-blue-600">
-                Start Swiping
-              </Button>
-            </SignUpButton>
-          </SignedOut>
+              <Link href="/signup">
+                <Button className="bg-blue-500 hover:bg-blue-600">
+                  Start Swiping
+                </Button>
+              </Link>
+            </>
+          )}
 
-          <SignedIn>
-            <UserButton />
-          </SignedIn>
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <User className="size-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="text-muted-foreground text-xs"
+                  disabled
+                >
+                  {user.email}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => signOutAction()}
+                  className="cursor-pointer"
+                >
+                  <LogOut className="mr-2 size-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           <div className="md:hidden">
             <Button
@@ -116,8 +140,8 @@ export default function Header() {
                 Home
               </Link>
             </li>
-            <SignedIn>
-              {signedInLinks.map(link => (
+            {user &&
+              signedInLinks.map(link => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -128,7 +152,6 @@ export default function Header() {
                   </Link>
                 </li>
               ))}
-            </SignedIn>
           </ul>
         </nav>
       )}

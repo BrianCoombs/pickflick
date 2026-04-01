@@ -6,7 +6,7 @@ This client component identifies the user in PostHog.
 
 "use client"
 
-import { useUser } from "@clerk/nextjs"
+import { useUser } from "@/hooks/use-user"
 import posthog from "posthog-js"
 import { useEffect } from "react"
 
@@ -15,10 +15,8 @@ export function PostHogUserIdentify() {
 
   useEffect(() => {
     if (user?.id) {
-      // Identify the user in PostHog
       posthog.identify(user.id)
     } else {
-      // If no user is signed in, reset any previously identified user
       posthog.reset()
     }
   }, [user?.id])

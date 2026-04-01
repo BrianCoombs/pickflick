@@ -29,14 +29,14 @@ npm run test:e2e - Run Playwright e2e tests
 ## Architecture
 This is a Next.js 15 app template with the following key integrations:
 
-Authentication: Clerk is integrated at the root layout level with middleware protecting /dashboard routes
+Authentication: Supabase Auth is integrated at the root layout level with middleware protecting app routes
 Styling: Tailwind CSS v4 with shadcn/ui components (New York style) and OKLCH color system
 UI Components: shadcn/ui configured with Lucide icons and path aliases (@/components, @/lib, etc.)
 Database: PostgreSQL with Drizzle ORM (uses npx drizzle-kit push for schema changes)
 Key Configuration
 Path Aliases: @/* maps to project root, with specific aliases for components, utils, ui, lib, and hooks
 Fonts: Uses Geist Sans and Geist Mono with CSS variables
-Middleware: Clerk middleware protects all /dashboard routes while allowing public access to marketing and auth pages
+Middleware: Supabase Auth middleware protects /sessions, /friends, /movies, /history, /settings routes while allowing public access to marketing and auth pages
 Code Style: Prettier configured with no semicolons, double quotes, 2-space indentation, and custom import ordering
 
 ## Project Structure
@@ -51,6 +51,6 @@ Code Style: Prettier configured with no semicolons, double quotes, 2-space inden
 Copy .env.example to .env.local and configure:
 
 DATABASE_URL - PostgreSQL connection string
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY - Clerk public key
-CLERK_SECRET_KEY - Clerk secret key
-Authentication URLs are pre-configured in .env.example
+NEXT_PUBLIC_SUPABASE_URL - Supabase project URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY - Supabase publishable key
+SUPABASE_SERVICE_ROLE_KEY - Supabase service role key (server-only)
