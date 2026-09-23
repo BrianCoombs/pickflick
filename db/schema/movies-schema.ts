@@ -9,6 +9,8 @@ import {
   unique
 } from "drizzle-orm/pg-core"
 
+// All tables are server-only through Drizzle. RLS intentionally has no client
+// policies; anon/authenticated grants are revoked in db/security/.
 // Movie sessions for groups swiping together
 export const movieSessions = pgTable("movie_sessions", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -20,7 +22,7 @@ export const movieSessions = pgTable("movie_sessions", {
   userIds: text("user_ids").array().notNull(), // Array of participant user IDs
   preferences: jsonb("preferences"), // Session preferences (genres, year range, etc.)
   moviePool: jsonb("movie_pool") // Pre-shuffled array of movie IDs for consistent ordering
-})
+}).enableRLS()
 
 // Individual swipes on movies
 export const swipes = pgTable(
@@ -38,7 +40,7 @@ export const swipes = pgTable(
   table => ({
     uniqueSwipe: unique().on(table.sessionId, table.userId, table.movieId)
   })
-)
+).enableRLS()
 
 // Friend relationships between users
 export const friendships = pgTable(
@@ -54,7 +56,7 @@ export const friendships = pgTable(
   table => ({
     uniqueFriendship: unique().on(table.userId1, table.userId2)
   })
-)
+).enableRLS()
 
 // User connections to external movie sources
 export const userMovieSources = pgTable("user_movie_sources", {
@@ -66,14 +68,14 @@ export const userMovieSources = pgTable("user_movie_sources", {
   metadata: jsonb("metadata"), // Store additional config like Plex server URL
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
-})
+}).enableRLS()
 
 // Cached movie data to reduce API calls
 export const cachedMovies = pgTable("cached_movies", {
   tmdbId: varchar("tmdb_id", { length: 50 }).primaryKey(),
   data: jsonb("data").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
-})
+}).enableRLS()
 
 // User movie preferences and history
 export const userMoviePreferences = pgTable("user_movie_preferences", {
@@ -84,7 +86,7 @@ export const userMoviePreferences = pgTable("user_movie_preferences", {
   minRating: integer("min_rating").default(6),
   preferredDecades: integer("preferred_decades").array(), // e.g., [1990, 2000, 2010]
   updatedAt: timestamp("updated_at").defaultNow().notNull()
-})
+}).enableRLS()
 
 // Match history for analytics
 export const matchHistory = pgTable("match_history", {
@@ -96,4 +98,4 @@ export const matchHistory = pgTable("match_history", {
   matchedAt: timestamp("matched_at").defaultNow().notNull(),
   watchedAt: timestamp("watched_at"),
   userRatings: jsonb("user_ratings") // Store individual user ratings after watching
-})
+}).enableRLS()
