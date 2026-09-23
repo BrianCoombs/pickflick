@@ -18,7 +18,7 @@ export const profilesTable = pgTable("profiles", {
     .defaultNow()
     .notNull()
     .$onUpdate(() => new Date())
-})
+}).enableRLS()
 
 export type InsertProfile = typeof profilesTable.$inferInsert
 export type SelectProfile = typeof profilesTable.$inferSelect
