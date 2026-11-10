@@ -9,7 +9,7 @@ import {
 import { Film, Plus, Users } from "lucide-react"
 import Link from "next/link"
 import { getActiveSessions } from "@/actions/db/movies-actions"
-import { getAuthenticatedUser } from "@/lib/supabase/server"
+import { getAuthenticatedUser } from "@/lib/auth/server"
 import { redirect } from "next/navigation"
 
 export default async function SessionsPage() {

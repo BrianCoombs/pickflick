@@ -1,6 +1,6 @@
 /*
 <ai_context>
-This client page provides the signup form using shadcn/ui components and Supabase Auth.
+This client page provides the signup form using shadcn/ui components and Neon Auth.
 </ai_context>
 */
 
@@ -18,28 +18,22 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { createClient } from "@/lib/supabase/client"
+import { authClient } from "@/lib/auth/client"
 import { Film } from "lucide-react"
 import Link from "next/link"
 import { useActionState } from "react"
 import { signupAction } from "../login/actions"
 
 function signInWithGoogle() {
-  const supabase = createClient()
-  supabase.auth.signInWithOAuth({
+  authClient.signIn.social({
     provider: "google",
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback`
-    }
+    callbackURL: `${window.location.origin}/sessions`
   })
 }
 
 export default function SignUpPage() {
   const [state, formAction, isPending] = useActionState(
-    async (
-      _prev: { error?: string; success?: string } | null,
-      formData: FormData
-    ) => {
+    async (_prev: { error: string } | null, formData: FormData) => {
       const result = await signupAction(formData)
       return result ?? null
     },
@@ -96,10 +90,6 @@ export default function SignUpPage() {
         <CardContent className="space-y-4 pt-0">
           {state?.error && (
             <p className="text-destructive text-sm">{state.error}</p>
-          )}
-
-          {state?.success && (
-            <p className="text-sm text-green-600">{state.success}</p>
           )}
 
           <div className="space-y-2">

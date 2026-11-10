@@ -2,18 +2,16 @@
 
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { auth } from "@/lib/auth/server"
 
 export async function loginAction(formData: FormData) {
-  const supabase = await createClient()
-
-  const { error } = await supabase.auth.signInWithPassword({
+  const { error } = await auth.signIn.email({
     email: formData.get("email") as string,
     password: formData.get("password") as string
   })
 
   if (error) {
-    return { error: error.message }
+    return { error: error.message || "Failed to sign in. Try again." }
   }
 
   revalidatePath("/", "layout")
@@ -21,20 +19,17 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function signupAction(formData: FormData) {
-  const supabase = await createClient()
+  const email = formData.get("email") as string
 
-  const { data, error } = await supabase.auth.signUp({
-    email: formData.get("email") as string,
+  const { error } = await auth.signUp.email({
+    email,
+    // Better Auth requires a display name; the form only asks for email.
+    name: email.split("@")[0],
     password: formData.get("password") as string
   })
 
   if (error) {
-    return { error: error.message }
-  }
-
-  // If email confirmation is required, user exists but session doesn't
-  if (data.user && !data.session) {
-    return { success: "Check your email to confirm your account." }
+    return { error: error.message || "Failed to create account." }
   }
 
   revalidatePath("/", "layout")
@@ -42,8 +37,7 @@ export async function signupAction(formData: FormData) {
 }
 
 export async function signOutAction() {
-  const supabase = await createClient()
-  await supabase.auth.signOut()
+  await auth.signOut()
   revalidatePath("/", "layout")
   redirect("/")
 }

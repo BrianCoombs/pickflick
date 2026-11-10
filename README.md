@@ -12,20 +12,19 @@ A collaborative movie selection app where friends can swipe through movies toget
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15, React, Tailwind CSS, shadcn/ui, Framer Motion
-- **Backend**: Next.js API Routes, PostgreSQL, Drizzle ORM
-- **Authentication**: Clerk
+- **Frontend**: Next.js 16, React, Tailwind CSS, shadcn/ui, Framer Motion
+- **Backend**: Next.js API Routes, Neon Postgres, Drizzle ORM
+- **Authentication**: Neon Auth (managed Better Auth): email/password and Google
 - **APIs**: TMDb (The Movie Database), OMDb (optional)
 
 ## Quick Start
 
 ### Prerequisites
 
-1. **Node.js** 18+ installed
-2. **PostgreSQL** database (use [Supabase](https://supabase.com/) for free hosting)
+1. **Node.js** 20.9+ installed
+2. **Neon** project with Postgres and Auth enabled ([console.neon.tech](https://console.neon.tech), free plan is enough)
 3. **API Keys**:
    - [TMDb API](https://www.themoviedb.org/settings/api) - Movie data (required)
-   - [Clerk](https://dashboard.clerk.com/) - Authentication (required)
    - [OMDb API](http://www.omdbapi.com/apikey.aspx) - Additional ratings (optional)
 
 ### Setup Instructions
@@ -38,32 +37,20 @@ A collaborative movie selection app where friends can swipe through movies toget
    ```
 
 2. **Configure environment**:
-   Create a `.env.local` file with your API keys:
-   ```env
-   # Database (Supabase, Neon, or any PostgreSQL)
-   DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
-
-   # Auth (Clerk) - Required
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-   CLERK_SECRET_KEY=sk_test_...
-   NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
-   NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup
-
-   # Movie APIs
-   TMDB_API_KEY=your_tmdb_api_key              # Required
-   TMDB_API_READ_ACCESS_TOKEN=your_tmdb_token  # Required
-   OMDB_API_KEY=your_omdb_key                  # Optional - for additional ratings
-
-   # Optional Services
-   NEXT_PUBLIC_POSTHOG_KEY=phc_...             # Analytics
-   NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
-   STRIPE_SECRET_KEY=sk_test_...               # Payments
-   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+   Copy `.env.example` to `.env.local` and fill it in. The Neon CLI can write
+   the database and auth values for you:
+   ```bash
+   npm i -g neon
+   neon login
+   neon env pull --project-id <project-id> --file .env.local \
+     -e DATABASE_URL,DATABASE_URL_UNPOOLED,NEON_AUTH_BASE_URL
+   echo "NEON_AUTH_COOKIE_SECRET=\"$(openssl rand -base64 32)\"" >> .env.local
    ```
+   Then add `TMDB_API_KEY` and `TMDB_API_READ_ACCESS_TOKEN`.
 
 3. **Setup database**:
    ```bash
-   npx drizzle-kit push
+   npm run db:migrate
    ```
 
 4. **Run development server**:
@@ -115,22 +102,29 @@ npm run type-check  # Check TypeScript types
 npm run clean       # Fix linting and format code
 
 # Database commands
-npx drizzle-kit push     # Push schema changes to database
-npx drizzle-kit generate # Generate migrations
+npm run db:generate      # Generate a migration from db/schema changes
+npm run db:migrate       # Apply migrations (uses DATABASE_URL_UNPOOLED)
 npx drizzle-kit studio   # Open database studio
 ```
 
 ## Deployment
 
-For detailed deployment instructions, see [DEPLOY.md](DEPLOY.md). Quick options:
-- **Vercel + Supabase** (Recommended) - Best for Next.js apps
-- **Railway** - All-in-one solution
-- **Render** - Budget-friendly option
+Production runs on Vercel (`pickflick.vercel.app`) with Neon for the database
+and auth. Set `DATABASE_URL`, `NEON_AUTH_BASE_URL`, `NEON_AUTH_COOKIE_SECRET`
+and the TMDb keys in Vercel. Any domain that serves the app must be added to
+Neon Auth's trusted domains (`neon neon-auth domain add https://<domain>`).
+
+Google sign-in uses Neon's shared development OAuth keys, which show Neon's
+branding on the consent screen. For a real launch, add your own Google client
+with `neon neon-auth oauth-provider`.
+
+Neon's free plan scales the compute to zero after 5 minutes idle and wakes it
+on the next query, so no keep-alive job is needed.
 
 ## Current Status
 
 ✅ **Working Features**:
-- User authentication with Clerk
+- Email/password and Google sign-in with Neon Auth
 - Movie data from TMDb API with enriched ratings
 - Session creation with genre/year filtering
 - Beautiful swipe interface with animations
@@ -140,7 +134,7 @@ For detailed deployment instructions, see [DEPLOY.md](DEPLOY.md). Quick options:
 - Mobile-responsive design
 
 🚧 **In Development**:
-- Real-time updates with Supabase
+- Real-time updates
 - Friend system and social features
 - Movie streaming availability
 - Session history and analytics

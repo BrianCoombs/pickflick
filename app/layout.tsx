@@ -14,12 +14,15 @@ import { PostHogUserIdentify } from "@/components/utilities/posthog/posthog-user
 import { Providers } from "@/components/utilities/providers"
 import { TailwindIndicator } from "@/components/utilities/tailwind-indicator"
 import { cn } from "@/lib/utils"
-import { getAuthenticatedUser } from "@/lib/supabase/server"
+import { getAuthenticatedUser } from "@/lib/auth/server"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
+
+// Every page reads the Neon Auth session cookie, so render on demand.
+export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
   title: "PickFlick",

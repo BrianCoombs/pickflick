@@ -19,24 +19,24 @@ npm run start - Start production server
 npm run lint - Run ESLint
 npm run types - Type check with TypeScript
 npm run clean - Fix linting and format code
-npm run db:local - Start local Supabase database
-npx drizzle-kit push - Push schema changes to database
+npm run db:generate - Generate a migration from db/schema changes
+npm run db:migrate - Apply migrations to Neon (uses DATABASE_URL_UNPOOLED)
 npm run db:seed - Seed database with initial data
 npm run test - Run all tests (unit + e2e)
 npm run test:unit - Run Jest unit tests
 npm run test:e2e - Run Playwright e2e tests
 
 ## Architecture
-This is a Next.js 15 app template with the following key integrations:
+This is a Next.js 16 app template with the following key integrations:
 
-Authentication: Supabase Auth is integrated at the root layout level with middleware protecting app routes
+Authentication: Neon Auth (managed Better Auth, `@neon/auth`). Server instance in lib/auth/server.ts, client in lib/auth/client.ts, API proxy at app/api/auth/[...path]
 Styling: Tailwind CSS v4 with shadcn/ui components (New York style) and OKLCH color system
 UI Components: shadcn/ui configured with Lucide icons and path aliases (@/components, @/lib, etc.)
-Database: PostgreSQL with Drizzle ORM (uses npx drizzle-kit push for schema changes)
+Database: Neon Postgres with Drizzle ORM (migrations in db/migrations; Neon Auth owns the neon_auth schema)
 Key Configuration
 Path Aliases: @/* maps to project root, with specific aliases for components, utils, ui, lib, and hooks
 Fonts: Uses Geist Sans and Geist Mono with CSS variables
-Middleware: Supabase Auth middleware protects /sessions, /friends, /movies, /history, /settings routes while allowing public access to marketing and auth pages
+Proxy: proxy.ts (Next 16's renamed middleware) uses Neon Auth to protect /sessions, /friends, /movies, /history, /settings; marketing and auth pages stay public
 Code Style: Prettier configured with no semicolons, double quotes, 2-space indentation, and custom import ordering
 
 ## Project Structure
@@ -50,7 +50,7 @@ Code Style: Prettier configured with no semicolons, double quotes, 2-space inden
 ## Environment Setup
 Copy .env.example to .env.local and configure:
 
-DATABASE_URL - PostgreSQL connection string
-NEXT_PUBLIC_SUPABASE_URL - Supabase project URL
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY - Supabase publishable key
-SUPABASE_SERVICE_ROLE_KEY - Supabase service role key (server-only)
+DATABASE_URL - Neon pooled connection string
+DATABASE_URL_UNPOOLED - Neon direct connection string (drizzle-kit)
+NEON_AUTH_BASE_URL - Neon Auth URL (Console > Auth > Configuration)
+NEON_AUTH_COOKIE_SECRET - 32+ character secret for session cookies (server-only)

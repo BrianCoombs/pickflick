@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getAuthenticatedUser } from "@/lib/supabase/server"
+import { getAuthenticatedUser } from "@/lib/auth/server"
 import { db } from "@/db/db"
 import { movieSessions } from "@/db/schema"
 import { eq } from "drizzle-orm"

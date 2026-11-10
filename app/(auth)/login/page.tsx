@@ -1,6 +1,6 @@
 /*
 <ai_context>
-This client page provides the login form using shadcn/ui components and Supabase Auth.
+This client page provides the login form using shadcn/ui components and Neon Auth.
 </ai_context>
 */
 
@@ -18,19 +18,16 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { createClient } from "@/lib/supabase/client"
+import { authClient } from "@/lib/auth/client"
 import { Film } from "lucide-react"
 import Link from "next/link"
 import { useActionState } from "react"
 import { loginAction } from "./actions"
 
 function signInWithGoogle() {
-  const supabase = createClient()
-  supabase.auth.signInWithOAuth({
+  authClient.signIn.social({
     provider: "google",
-    options: {
-      redirectTo: `${window.location.origin}/auth/callback`
-    }
+    callbackURL: `${window.location.origin}/sessions`
   })
 }
 
