@@ -1,6 +1,6 @@
 "use server"
 
-import { getAuthenticatedUser } from "@/lib/supabase/server"
+import { getAuthenticatedUser } from "@/lib/auth/server"
 import { db } from "@/db/db"
 import { movieSessions, swipes, friendships, matchHistory } from "@/db/schema"
 import { and, eq, or, desc, sql } from "drizzle-orm"

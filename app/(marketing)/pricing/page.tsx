@@ -16,7 +16,7 @@ import {
   CardTitle
 } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { getAuthenticatedUser } from "@/lib/supabase/server"
+import { getAuthenticatedUser } from "@/lib/auth/server"
 
 export default async function PricingPage() {
   const user = await getAuthenticatedUser()

@@ -1,6 +1,6 @@
 /*
 <ai_context>
-This client component provides a user button for the sidebar using Supabase Auth.
+This client component provides a user button for the sidebar using Neon Auth.
 </ai_context>
 */
 

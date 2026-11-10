@@ -14,6 +14,7 @@ export default defineConfig({
   out: "./db/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL!
+    // Migrations use the direct (unpooled) Neon connection when available
+    url: process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL!
   }
 })
