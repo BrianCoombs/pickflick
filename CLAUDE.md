@@ -54,3 +54,9 @@ DATABASE_URL - Neon pooled connection string
 DATABASE_URL_UNPOOLED - Neon direct connection string (drizzle-kit)
 NEON_AUTH_BASE_URL - Neon Auth URL (Console > Auth > Configuration)
 NEON_AUTH_COOKIE_SECRET - 32+ character secret for session cookies (server-only)
+TRAKT_CLIENT_ID - Trakt app Client ID (developer.trakt.tv app 275873; PKCE, no secret)
+LETTERBOXD_ENABLED - set to "false" to hide Letterboxd if it starts blocking us (default on)
+
+## Watchlists
+Code in lib/watchlists/ (pure parsing and pool logic has unit tests: npm run test:unit).
+Trakt connect routes: app/api/connect/trakt. Letterboxd is read from public pages; slug→TMDb ids cached in letterboxd_films.

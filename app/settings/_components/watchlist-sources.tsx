@@ -167,7 +167,10 @@ export function WatchlistSources({
 
       <CardFooter>
         <p className="text-muted-foreground text-xs">
-          PickFlick uses Trakt but is not endorsed or certified by Trakt.
+          PickFlick uses Trakt but is not endorsed or certified by Trakt.{" "}
+          <a href="/privacy" className="underline underline-offset-2">
+            Privacy
+          </a>
         </p>
       </CardFooter>
     </Card>
