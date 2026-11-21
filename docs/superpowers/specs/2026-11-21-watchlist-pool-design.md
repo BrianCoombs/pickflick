@@ -99,11 +99,25 @@ whose lists to include.
 
 ### Trakt OAuth
 
-- Env: `TRAKT_CLIENT_ID`, `TRAKT_CLIENT_SECRET`. Brian registers the app at
-  trakt.tv/oauth/applications with redirect URIs for localhost and production.
-- `GET /api/connect/trakt` → sets a short-lived `state` cookie, redirects to
-  Trakt's authorize URL.
-- `GET /api/connect/trakt/callback` → checks `state`, exchanges the code, calls
+- Registered 2026-11-21 at developer.trakt.tv: app "PickFlick" (ID 275873),
+  owner @2bcoombs2_153bc3, Development type. Redirect URIs:
+  `https://pickflick.vercel.app/api/connect/trakt/callback` and
+  `http://localhost:3000/api/connect/trakt/callback`.
+- **PKCE, no client secret.** Trakt's new developer portal issues only a Client
+  ID and requires PKCE. Env: `TRAKT_CLIENT_ID` only (set in `.env.local` and in
+  Vercel for all environments). Read the PKCE guide on developer.trakt.tv for
+  the exact authorize/token parameters.
+- **Who can sign in:** a Development app allows the owner plus up to 16 Trakt
+  users added under the app's Members tab (as Testers). Friends must be added
+  there by Trakt username before they can link. Production access (anyone) can
+  be requested later from the app page and yields a separate Client ID. The
+  settings page should show a clear error when Trakt refuses a user who isn't a
+  member.
+- `GET /api/connect/trakt` → generates a PKCE verifier and `state`, stores both
+  in short-lived httpOnly cookies, redirects to Trakt's authorize URL with the
+  code challenge.
+- `GET /api/connect/trakt/callback` → checks `state`, exchanges the code with
+  the verifier, calls
   `GET /users/me` for the username, upserts the row (tokens + `expires_at` and
   username in `metadata`), redirects to `/settings`.
 - A helper gets a valid access token, refreshing and saving it first when
