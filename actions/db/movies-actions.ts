@@ -7,6 +7,19 @@ import { and, eq, or, desc, sql } from "drizzle-orm"
 import { ActionState } from "@/types/server-action-types"
 import { revalidatePath } from "next/cache"
 import { MovieService } from "@/lib/api/movie-service"
+import { buildPoolFromWatchlists } from "@/lib/watchlists/build"
+import type { WatchlistSourceRef } from "@/lib/watchlists/combine"
+import { getRequestOrigin } from "@/lib/watchlists/origin"
+import { traktRedirectUri } from "@/lib/watchlists/redirect"
+
+export interface WatchlistPreferences {
+  mode: "watchlists"
+  sources: WatchlistSourceRef[]
+}
+
+function isWatchlistPreferences(p: any): p is WatchlistPreferences {
+  return p?.mode === "watchlists" && Array.isArray(p.sources)
+}
 
 export async function createMovieSession(
   userIds: string[],
@@ -45,7 +58,11 @@ export async function createMovieSession(
       .returning()
 
     revalidatePath("/sessions")
-    return { isSuccess: true, message: "Session created successfully", data: { sessionId: session.id } }
+    return {
+      isSuccess: true,
+      message: "Session created successfully",
+      data: { sessionId: session.id }
+    }
   } catch (error) {
     console.error("Error creating movie session:", error)
     return { isSuccess: false, message: "Failed to create session" }
@@ -74,7 +91,10 @@ export async function startMovieSession(
     }
 
     if (session.hostUserId !== userId) {
-      return { isSuccess: false, message: "Only the host can start the session" }
+      return {
+        isSuccess: false,
+        message: "Only the host can start the session"
+      }
     }
 
     // Update session status to 'started'
@@ -85,7 +105,11 @@ export async function startMovieSession(
       })
       .where(eq(movieSessions.id, sessionId))
 
-    return { isSuccess: true, message: "Session started successfully", data: null }
+    return {
+      isSuccess: true,
+      message: "Session started successfully",
+      data: null
+    }
   } catch (error) {
     console.error("Error starting movie session:", error)
     return { isSuccess: false, message: "Failed to start session" }
@@ -109,7 +133,9 @@ export async function joinMovieSession(
       sessions = await db
         .select()
         .from(movieSessions)
-        .where(sql`LOWER(${movieSessions.id}::text) LIKE LOWER(${sessionCode + '%'})`)
+        .where(
+          sql`LOWER(${movieSessions.id}::text) LIKE LOWER(${sessionCode + "%"})`
+        )
         .limit(1)
     } else {
       // Full UUID
@@ -135,12 +161,16 @@ export async function joinMovieSession(
       await db
         .update(movieSessions)
         .set({
-          userIds: [...session.userIds, userId],
+          userIds: [...session.userIds, userId]
         })
         .where(eq(movieSessions.id, session.id))
     }
 
-    return { isSuccess: true, message: "Joined session successfully", data: { session, sessionId: session.id } }
+    return {
+      isSuccess: true,
+      message: "Joined session successfully",
+      data: { session, sessionId: session.id }
+    }
   } catch (error) {
     console.error("Error joining movie session:", error)
     return { isSuccess: false, message: "Failed to join session" }
@@ -166,32 +196,43 @@ export async function swipeMovie(
         sessionId,
         userId,
         movieId,
-        direction,
+        direction
       })
       .onConflictDoUpdate({
         target: [swipes.sessionId, swipes.userId, swipes.movieId],
         set: {
           direction,
-          swipedAt: new Date(),
-        },
+          swipedAt: new Date()
+        }
       })
 
     // Check for match if swiped right
     if (direction === "right" || direction === "super") {
       const match = await checkForMatch(sessionId, movieId)
       if (match) {
-        return { isSuccess: true, message: "Match found!", data: { matched: true, movieId } }
+        return {
+          isSuccess: true,
+          message: "Match found!",
+          data: { matched: true, movieId }
+        }
       }
     }
 
-    return { isSuccess: true, message: "Swipe recorded", data: { matched: false } }
+    return {
+      isSuccess: true,
+      message: "Swipe recorded",
+      data: { matched: false }
+    }
   } catch (error) {
     console.error("Error swiping movie:", error)
     return { isSuccess: false, message: "Failed to record swipe" }
   }
 }
 
-async function checkForMatch(sessionId: string, movieId: string): Promise<boolean> {
+async function checkForMatch(
+  sessionId: string,
+  movieId: string
+): Promise<boolean> {
   // Get session details
   const [session] = await db
     .select()
@@ -220,14 +261,14 @@ async function checkForMatch(sessionId: string, movieId: string): Promise<boolea
       .update(movieSessions)
       .set({
         matchedMovieId: movieId,
-        status: "completed",
+        status: "completed"
       })
       .where(eq(movieSessions.id, sessionId))
 
     // Record match in history
     await db.insert(matchHistory).values({
       sessionId,
-      movieId,
+      movieId
     })
 
     return true
@@ -249,10 +290,7 @@ export async function getFriends(): Promise<ActionState<any>> {
       .from(friendships)
       .where(
         and(
-          or(
-            eq(friendships.userId1, userId),
-            eq(friendships.userId2, userId)
-          ),
+          or(eq(friendships.userId1, userId), eq(friendships.userId2, userId)),
           eq(friendships.status, "accepted")
         )
       )
@@ -282,7 +320,7 @@ export async function sendFriendRequest(
       .values({
         userId1: user1,
         userId2: user2,
-        status: "pending",
+        status: "pending"
       })
       .onConflictDoNothing()
       .returning()
@@ -308,20 +346,21 @@ export async function acceptFriendRequest(
       .update(friendships)
       .set({
         status: "accepted",
-        acceptedAt: new Date(),
+        acceptedAt: new Date()
       })
       .where(
         and(
           eq(friendships.id, friendshipId),
-          or(
-            eq(friendships.userId1, userId),
-            eq(friendships.userId2, userId)
-          )
+          or(eq(friendships.userId1, userId), eq(friendships.userId2, userId))
         )
       )
       .returning()
 
-    return { isSuccess: true, message: "Friend request accepted", data: friendship }
+    return {
+      isSuccess: true,
+      message: "Friend request accepted",
+      data: friendship
+    }
   } catch (error) {
     console.error("Error accepting friend request:", error)
     return { isSuccess: false, message: "Failed to accept friend request" }
@@ -384,7 +423,7 @@ export async function getSessionHistory(): Promise<ActionState<any>> {
 export async function updateSessionPreferences(
   sessionId: string,
   preferences: any
-): Promise<ActionState<any>> {
+): Promise<ActionState<{ failed: WatchlistSourceRef[] } | null>> {
   try {
     const user = await getAuthenticatedUser()
     if (!user) {
@@ -407,16 +446,49 @@ export async function updateSessionPreferences(
       return { isSuccess: false, message: "You are not part of this session" }
     }
 
-    // Generate new movie pool with updated preferences
-    const movieService = new MovieService()
-    const movies = await movieService.getMoviePool({
-      userIds: session.userIds,
-      poolSize: 50,
-      filters: preferences
-    })
+    let movieIds: number[]
+    let failed: WatchlistSourceRef[] = []
 
-    // Extract just the movie IDs to store in the database
-    const movieIds = movies.map(movie => movie.id)
+    if (isWatchlistPreferences(preferences)) {
+      // Only participants' lists can be used
+      const sources = preferences.sources.filter(
+        s =>
+          session.userIds.includes(s.userId) &&
+          (s.sourceType === "trakt" || s.sourceType === "letterboxd")
+      )
+      if (sources.length === 0) {
+        return { isSuccess: false, message: "Pick at least one watchlist" }
+      }
+
+      const origin = await getRequestOrigin()
+      const pool = await buildPoolFromWatchlists(
+        sources,
+        traktRedirectUri(origin)
+      )
+      if (pool.movieIds.length === 0) {
+        return {
+          isSuccess: false,
+          message:
+            pool.failed.length > 0
+              ? "Couldn't load any of those watchlists. Try again, or pick others."
+              : "Those watchlists are empty."
+        }
+      }
+      movieIds = pool.movieIds
+      failed = pool.failed
+      preferences = { mode: "watchlists", sources }
+    } else {
+      // Generate new movie pool with updated preferences
+      const movieService = new MovieService()
+      const movies = await movieService.getMoviePool({
+        userIds: session.userIds,
+        poolSize: 50,
+        filters: preferences
+      })
+
+      // Extract just the movie IDs to store in the database
+      movieIds = movies.map(movie => movie.id)
+    }
 
     // Update preferences and movie pool
     await db
@@ -428,12 +500,14 @@ export async function updateSessionPreferences(
       .where(eq(movieSessions.id, sessionId))
 
     // Clear existing swipes when preferences change
-    await db
-      .delete(swipes)
-      .where(eq(swipes.sessionId, sessionId))
+    await db.delete(swipes).where(eq(swipes.sessionId, sessionId))
 
     revalidatePath(`/sessions/${sessionId}`)
-    return { isSuccess: true, message: "Preferences updated successfully", data: null }
+    return {
+      isSuccess: true,
+      message: "Preferences updated successfully",
+      data: { failed }
+    }
   } catch (error) {
     console.error("Error updating session preferences:", error)
     return { isSuccess: false, message: "Failed to update preferences" }
@@ -462,26 +536,27 @@ export async function deleteMovieSession(
     }
 
     if (session.hostUserId !== userId) {
-      return { isSuccess: false, message: "Only the host can delete the session" }
+      return {
+        isSuccess: false,
+        message: "Only the host can delete the session"
+      }
     }
 
     // Delete all swipes for this session
-    await db
-      .delete(swipes)
-      .where(eq(swipes.sessionId, sessionId))
+    await db.delete(swipes).where(eq(swipes.sessionId, sessionId))
 
     // Delete any match history
-    await db
-      .delete(matchHistory)
-      .where(eq(matchHistory.sessionId, sessionId))
+    await db.delete(matchHistory).where(eq(matchHistory.sessionId, sessionId))
 
     // Delete the session
-    await db
-      .delete(movieSessions)
-      .where(eq(movieSessions.id, sessionId))
+    await db.delete(movieSessions).where(eq(movieSessions.id, sessionId))
 
     revalidatePath("/sessions")
-    return { isSuccess: true, message: "Session deleted successfully", data: null }
+    return {
+      isSuccess: true,
+      message: "Session deleted successfully",
+      data: null
+    }
   } catch (error) {
     console.error("Error deleting session:", error)
     return { isSuccess: false, message: "Failed to delete session" }
