@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useUser } from "@/hooks/use-user"
 import { signOutAction } from "@/app/(auth)/login/actions"
-import { Menu, Film, X, LogOut, User } from "lucide-react"
+import { Menu, Film, X, LogOut, User, Settings } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState, useTransition } from "react"
 import { ThemeSwitcher } from "./utilities/theme-switcher"
@@ -100,6 +100,12 @@ export default function Header() {
                   disabled
                 >
                   {user.email}
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link href="/settings">
+                    <Settings className="mr-2 size-4" />
+                    Profile
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => startTransition(() => signOutAction())}
