@@ -4,7 +4,9 @@ import { join } from "node:path"
 import { test } from "node:test"
 import {
   isWatchlistPage,
+  normalizeLetterboxdUsername,
   parseFilmTmdbId,
+  parseWatchlistPageCount,
   parseWatchlistSlugs
 } from "./letterboxd-parse"
 
@@ -34,4 +36,33 @@ test("reads the TMDb id from a film page", () => {
 
 test("returns null when a film page has no TMDb id", () => {
   assert.equal(parseFilmTmdbId("<html><body></body></html>"), null)
+})
+
+test("accepts a username typed plainly, with @, or as a profile link", () => {
+  assert.equal(normalizeLetterboxdUsername("Dave"), "dave")
+  assert.equal(normalizeLetterboxdUsername(" @dave "), "dave")
+  assert.equal(
+    normalizeLetterboxdUsername("https://letterboxd.com/dave/watchlist/"),
+    "dave"
+  )
+  assert.equal(
+    normalizeLetterboxdUsername("letterboxd.com/some_user"),
+    "some_user"
+  )
+})
+
+test("rejects text that can't be a Letterboxd username", () => {
+  assert.equal(normalizeLetterboxdUsername(""), null)
+  assert.equal(normalizeLetterboxdUsername("dave/../../admin"), null)
+  assert.equal(normalizeLetterboxdUsername("has space"), null)
+})
+
+test("reads the number of watchlist pages from the pagination", () => {
+  assert.equal(parseWatchlistPageCount(fixture("watchlist-page.html")), 22)
+})
+
+test("treats a page without pagination as the only page", () => {
+  const singlePage =
+    "<html><head><title>Sam’s Watchlist • Letterboxd</title></head><body></body></html>"
+  assert.equal(parseWatchlistPageCount(singlePage), 1)
 })
