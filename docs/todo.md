@@ -33,8 +33,8 @@
 
 ### Task 0: Letterboxd-from-Vercel check (throwaway)
 
-- [ ] Add `app/api/debug/letterboxd/route.ts` that fetches one public watchlist page and one film page and returns status codes and whether slugs/TMDb ID were found.
-- [ ] Push the branch, call the route on the Vercel preview, record the result here, delete the route.
+- [x] Add `app/api/debug/letterboxd/route.ts` that fetches one public watchlist page and one film page and returns status codes and whether slugs/TMDb ID were found.
+- [x] Push the branch, call the route on the Vercel preview, record the result here, delete the route.
 
 ### Task 1: Test runner and pure watchlist logic
 
@@ -46,16 +46,16 @@
 - `parseFilmTmdbId(html: string): number | null`
 - `buildWatchlistPool(lists: number[][], size: number, random?: () => number): number[]` (union, dedupe, shuffle, slice)
 
-- [ ] Add `tsx` dev dependency; scripts `test:unit` = `node --import tsx --test "lib/**/*.test.ts"`, `test` = `npm run test:unit`.
-- [ ] Tests: slugs parsed from a saved watchlist page fixture (count > 0, first slug matches); empty list page → `[]`; TMDb ID parsed from a film fixture (`parasite-2019` → `496243`); missing → `null`; pool dedupes `[[1,2],[2,3]]` → set `{1,2,3}`; size cap respected.
-- [ ] Implement; run `npm run test:unit` → pass. Commit.
+- [x] Add `tsx` dev dependency; scripts `test:unit` = `node --import tsx --test "lib/**/*.test.ts"`, `test` = `npm run test:unit`.
+- [x] Tests: slugs parsed from a saved watchlist page fixture (count > 0, first slug matches); empty list page → `[]`; TMDb ID parsed from a film fixture (`parasite-2019` → `496243`); missing → `null`; pool dedupes `[[1,2],[2,3]]` → set `{1,2,3}`; size cap respected.
+- [x] Implement; run `npm run test:unit` → pass. Commit.
 
 ### Task 2: Schema
 
 **Files:** Modify `db/schema/movies-schema.ts`; generated migration in `db/migrations/`.
 
-- [ ] Unique `(user_id, source_type)` on `user_movie_sources`; new `letterboxd_films (slug varchar(255) pk, tmdb_id integer null, updated_at)` with `.enableRLS()`. Export types.
-- [ ] `npm run db:generate`, review SQL, `npm run db:migrate`. Commit.
+- [x] Unique `(user_id, source_type)` on `user_movie_sources`; new `letterboxd_films (slug varchar(255) pk, tmdb_id integer null, updated_at)` with `.enableRLS()`. Export types.
+- [x] `npm run db:generate`, review SQL, `npm run db:migrate`. Commit.
 
 ### Task 3: Trakt client and source store
 
@@ -69,15 +69,15 @@
 - `getUserSources(userId): Promise<LinkedSource[]>`, `getSourcesForUsers(userIds)`, `upsertSource(...)`, `deleteSource(userId, type)`, `getValidTraktToken(userId, redirectUri): Promise<string>`
 - `LinkedSource = { userId: string; sourceType: "trakt" | "letterboxd"; username: string }`
 
-- [ ] Test `challengeFor` against RFC 7636 vector (`dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk` → `E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM`). Fail → implement → pass.
-- [ ] Implement the rest. Commit.
+- [x] Test `challengeFor` against RFC 7636 vector (`dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk` → `E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM`). Fail → implement → pass.
+- [x] Implement the rest. Commit.
 
 ### Task 4: Trakt connect routes
 
 **Files:** Create `app/api/connect/trakt/route.ts`, `app/api/connect/trakt/callback/route.ts`.
 
-- [ ] Start: require user, set httpOnly `trakt_pkce` and `trakt_state` cookies (10 min), redirect to authorize URL.
-- [ ] Callback: verify state, exchange code, fetch username, upsert, clear cookies, redirect `/settings?linked=trakt`; on error redirect `/settings?error=<code>`. Commit.
+- [x] Start: require user, set httpOnly `trakt_pkce` and `trakt_state` cookies (10 min), redirect to authorize URL.
+- [x] Callback: verify state, exchange code, fetch username, upsert, clear cookies, redirect `/settings?linked=trakt`; on error redirect `/settings?error=<code>`. Commit.
 
 ### Task 5: Letterboxd fetcher
 
@@ -85,7 +85,7 @@
 
 **Produces:** `letterboxdEnabled(): boolean`, `checkLetterboxdUser(username): Promise<"ok" | "not_found" | "private_or_empty" | "blocked">`, `getLetterboxdWatchlistTmdbIds(username, deadline: number): Promise<number[]>`
 
-- [ ] Page through `/<user>/watchlist/page/<n>/` until no slugs; resolve slugs via `letterboxd_films` cache, fetch misses 5 at a time, store results (including null). Commit.
+- [x] Page through `/<user>/watchlist/page/<n>/` until no slugs; resolve slugs via `letterboxd_films` cache, fetch misses 5 at a time, store results (including null). Commit.
 
 ### Task 6: Settings page and actions
 
@@ -93,7 +93,7 @@
 
 **Produces:** `getMyWatchlistSources()`, `saveLetterboxdUsername(username)`, `removeWatchlistSource(type)`, `getSessionWatchlistOptions(sessionId): ActionState<WatchlistOption[]>` where `WatchlistOption = { userId; name; sources: LinkedSource[] }` (names from `neon_auth."user"`, email prefix fallback).
 
-- [ ] Settings card: Trakt connect/disconnect, Letterboxd username save/remove with the public-watchlist note, error/success banners from query params, Trakt notice. Header dropdown gets "Profile". Commit.
+- [x] Settings card: Trakt connect/disconnect, Letterboxd username save/remove with the public-watchlist note, error/success banners from query params, Trakt notice. Header dropdown gets "Profile". Commit.
 
 ### Task 7: Pool building
 
@@ -101,29 +101,42 @@
 
 **Produces:** `buildPoolFromWatchlists(sources: {userId; sourceType}[], redirectUri): Promise<{ movieIds: number[]; failed: { userId; sourceType; name? }[] }>`
 
-- [ ] Fetch all selected sources in parallel with a 20s deadline each, union via `buildWatchlistPool(…, 50)`.
-- [ ] `updateSessionPreferences` branches on `mode === "watchlists"`: error (nothing saved) if pool empty; returns `failed` in `data`. Commit.
+- [x] Fetch all selected sources in parallel with a 20s deadline each, union via `buildWatchlistPool(…, 50)`.
+- [x] `updateSessionPreferences` branches on `mode === "watchlists"`: error (nothing saved) if pool empty; returns `failed` in `data`. Commit.
 
 ### Task 8: Lobby and form UI
 
 **Files:** Modify `components/movie-preferences-form.tsx`, `app/sessions/[sessionId]/_components/criteria-dialog.tsx`, `swipe-interface.tsx`, `app/sessions/new/page.tsx`.
 
-- [ ] Form: optional `watchlistOptions` prop; when given, a "Genres & years | Watchlists" toggle; watchlist mode lists people with a checkbox per source (pre-ticked), greyed "No watchlist linked".
-- [ ] Dialog loads options on open; toasts failed sources by name. Optional `trigger` label.
-- [ ] Waiting screen: host-only "Choose movies" dialog next to Start Session.
-- [ ] New-session page hint. Commit.
+- [x] Form: optional `watchlistOptions` prop; when given, a "Genres & years | Watchlists" toggle; watchlist mode lists people with a checkbox per source (pre-ticked), greyed "No watchlist linked".
+- [x] Dialog loads options on open; toasts failed sources by name. Optional `trigger` label.
+- [x] Waiting screen: host-only "Choose movies" dialog next to Start Session.
+- [x] New-session page hint. Commit.
 
 ### Task 9: Privacy page, Trakt notice, docs
 
-- [ ] `app/(marketing)/privacy/page.tsx` (what we store, Trakt tokens, deletion on disconnect) with the Trakt notice; README section; CLAUDE.md env list. Commit.
+- [x] `app/(marketing)/privacy/page.tsx` (what we store, Trakt tokens, deletion on disconnect) with the Trakt notice; README section; CLAUDE.md env list. Commit.
 
 ### Task 10: Verify and ship
 
-- [ ] `npm run type-check`, `npm run lint`, `npm run test:unit`, `npm run build`.
-- [ ] Manual run in the browser: settings, Letterboxd link, lobby picker, pool build.
-- [ ] Push, open PR. Ask Brian before merging to production.
+- [x] `npm run type-check`, `npm run lint`, `npm run test:unit`, `npm run build`.
+- [x] Manual run in the browser: settings, Letterboxd link, lobby picker, pool build.
+- [ ] Push branch. Ask Brian before merging to production.
 - [ ] After merge: submit Trakt Production access request.
 
 ## Review
 
-_(filled in at the end)_
+- Built as planned: Trakt (PKCE) and Letterboxd linking on `/settings`, a host-only
+  "Choose Movies" dialog on the lobby waiting screen, watchlist mode in Change Criteria,
+  live fetching with one failed list never blocking the rest, `/privacy` with the Trakt notice.
+- Letterboxd works from Vercel (checked on a preview deployment, Task 0), so it ships enabled.
+  `LETTERBOXD_ENABLED=false` hides it if that changes.
+- Fixed two existing bugs found while testing: toasts never showed anywhere in the app
+  (Toaster listened to a second copy of the toast store), and the participant-name query.
+- Final review: no security or authorization issues. Fixed three Letterboxd issues it found
+  (TV ids, progress lost on a 429 or stalled request, transient errors cached forever).
+- Checks: type-check, lint, 26 unit tests, production build, and a manual run in Chrome
+  (profile page, three Letterboxd username cases, lobby pool build, failure toast).
+- Not verified end-to-end: Trakt sign-in. Trakt asked for profile setup (birthday) on the
+  owner account before it would authorize.
+
