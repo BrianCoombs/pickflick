@@ -9,10 +9,10 @@ Slug -> TMDb matches are cached in letterboxd_films.
 import { db } from "@/db/db"
 import { letterboxdFilms } from "@/db/schema"
 import { inArray } from "drizzle-orm"
-import { mapWithConcurrency } from "./concurrency"
+import { lookupAll } from "./lookup"
 import {
+  filmLookup,
   isWatchlistPage,
-  parseFilmTmdbId,
   parseWatchlistPageCount,
   parseWatchlistSlugs
 } from "./letterboxd-parse"
@@ -21,7 +21,8 @@ const BASE_URL = "https://letterboxd.com"
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36"
 const FILM_PAGE_CONCURRENCY = 5
-const MAX_PAGES = 50 // 28 films a page
+const MAX_PAGES = 50 // 28 films a page, so lists past 1,400 films are cut
+const REQUEST_TIMEOUT_MS = 8_000
 
 export class LetterboxdError extends Error {
   constructor(
@@ -42,7 +43,8 @@ async function fetchPage(
 ): Promise<{ status: number; html: string }> {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { "User-Agent": USER_AGENT },
-    cache: "no-store"
+    cache: "no-store",
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   })
   const html = await res.text()
   if (
@@ -84,69 +86,77 @@ export async function checkLetterboxdUser(
   }
 }
 
+const isBlocked = (error: unknown) =>
+  error instanceof LetterboxdError && error.reason === "blocked"
+
 async function resolveTmdbIds(
   slugs: string[],
   deadline: number
-): Promise<number[]> {
-  const cached = new Map<string, number | null>()
+): Promise<{ ids: number[]; blocked: boolean }> {
+  const known = new Map<string, number | null>()
   if (slugs.length > 0) {
     const rows = await db
       .select()
       .from(letterboxdFilms)
       .where(inArray(letterboxdFilms.slug, slugs))
-    rows.forEach(row => cached.set(row.slug, row.tmdbId))
+    rows.forEach(row => known.set(row.slug, row.tmdbId))
   }
 
-  const missing = slugs.filter(slug => !cached.has(slug))
-  const found = await mapWithConcurrency(
-    missing,
+  // Films not looked up in time are left for a later build
+  const { results, stopped } = await lookupAll(
+    slugs.filter(slug => !known.has(slug)),
     FILM_PAGE_CONCURRENCY,
+    deadline,
     async slug => {
-      // Out of time: skip the rest; they'll be looked up on a later build
-      if (Date.now() > deadline) return null
-      try {
-        const { status, html } = await fetchPage(`/film/${slug}/`)
-        return { slug, tmdbId: status === 200 ? parseFilmTmdbId(html) : null }
-      } catch (error) {
-        if (error instanceof LetterboxdError) throw error
-        return null
-      }
-    }
+      const { status, html } = await fetchPage(`/film/${slug}/`)
+      return filmLookup(status, html)
+    },
+    isBlocked
   )
 
-  const fresh = found.filter(
-    (f): f is { slug: string; tmdbId: number | null } => f !== null
-  )
-  if (fresh.length > 0) {
+  const fresh = Array.from(results, ([slug, r]) => ({ slug, ...r }))
+  const toCache = fresh.filter(f => f.cache)
+  if (toCache.length > 0) {
     await db
       .insert(letterboxdFilms)
-      .values(fresh.map(f => ({ ...f, updatedAt: new Date() })))
+      .values(
+        toCache.map(f => ({
+          slug: f.slug,
+          tmdbId: f.tmdbId,
+          updatedAt: new Date()
+        }))
+      )
       .onConflictDoNothing()
-    fresh.forEach(f => cached.set(f.slug, f.tmdbId))
   }
+  fresh.forEach(f => known.set(f.slug, f.tmdbId))
 
-  return slugs
-    .map(slug => cached.get(slug))
-    .filter((id): id is number => typeof id === "number")
+  return {
+    ids: slugs
+      .map(slug => known.get(slug))
+      .filter((id): id is number => typeof id === "number"),
+    blocked: stopped
+  }
 }
 
 // Every movie on the user's public watchlist as TMDb ids. Stops early at the
-// deadline (ms timestamp) and returns what it has so far
+// deadline (ms timestamp), or if Letterboxd starts blocking us, and returns
+// what it has so far
 export async function getLetterboxdWatchlistTmdbIds(
   username: string,
   deadline: number
 ): Promise<number[]> {
   const first = await fetchWatchlistPage(username, 1)
   const pageCount = Math.min(first.pageCount, MAX_PAGES)
-  const rest = await mapWithConcurrency(
+  const rest = await lookupAll(
     Array.from({ length: pageCount - 1 }, (_, i) => i + 2),
     FILM_PAGE_CONCURRENCY,
-    async page =>
-      Date.now() < deadline
-        ? (await fetchWatchlistPage(username, page)).slugs
-        : []
+    deadline,
+    async page => (await fetchWatchlistPage(username, page)).slugs,
+    isBlocked
   )
-  const slugs = Array.from(new Set([...first.slugs, ...rest.flat()]))
+  const slugs = Array.from(
+    new Set([...first.slugs, ...Array.from(rest.results.values()).flat()])
+  )
 
   if (slugs.length === 0) {
     throw new LetterboxdError(
@@ -155,5 +165,9 @@ export async function getLetterboxdWatchlistTmdbIds(
     )
   }
 
-  return resolveTmdbIds(slugs, deadline)
+  const { ids, blocked } = await resolveTmdbIds(slugs, deadline)
+  if (ids.length === 0 && (blocked || rest.stopped)) {
+    throw new LetterboxdError("Letterboxd blocked us", "blocked")
+  }
+  return ids
 }

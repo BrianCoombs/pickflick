@@ -20,9 +20,24 @@ export function isWatchlistPage(html: string): boolean {
   return /watchlist/i.test(title)
 }
 
+// Only movies: some Letterboxd entries (miniseries, TV specials) link to TMDb
+// TV ids, which overlap with movie ids
 export function parseFilmTmdbId(html: string): number | null {
+  const type = html.match(/data-tmdb-type="([a-z]+)"/)?.[1]
+  if (type && type !== "movie") return null
   const match = html.match(/data-tmdb-id="(\d+)"/)
   return match ? Number(match[1]) : null
+}
+
+// What to record for a film page. Only a normal 200 answer is final; errors
+// (404s, 5xx) are left uncached so a later build tries again
+export function filmLookup(
+  status: number,
+  html: string
+): { cache: boolean; tmdbId: number | null } {
+  return status === 200
+    ? { cache: true, tmdbId: parseFilmTmdbId(html) }
+    : { cache: false, tmdbId: null }
 }
 
 // Accepts "dave", "@dave" or a letterboxd.com profile link. Letterboxd

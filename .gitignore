@@ -38,4 +38,5 @@ next-env.d.ts
 
 
 # local docs
-DEPLOY.md.superpowers/
+DEPLOY.md
+.superpowers/

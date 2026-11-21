@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
 import {
+  filmLookup,
   isWatchlistPage,
   normalizeLetterboxdUsername,
   parseFilmTmdbId,
@@ -65,4 +66,21 @@ test("treats a page without pagination as the only page", () => {
   const singlePage =
     "<html><head><title>Sam’s Watchlist • Letterboxd</title></head><body></body></html>"
   assert.equal(parseWatchlistPageCount(singlePage), 1)
+})
+
+test("ignores TMDb ids for TV entries, whose ids overlap with movies", () => {
+  const tvPage =
+    '<html><body data-tmdb-type="tv" data-tmdb-id="1396"></body></html>'
+  assert.equal(parseFilmTmdbId(tvPage), null)
+})
+
+test("caches a film page's result only when Letterboxd answered normally", () => {
+  const film = fixture("film-page.html")
+  assert.deepEqual(filmLookup(200, film), { cache: true, tmdbId: 496243 })
+  assert.deepEqual(filmLookup(200, "<html></html>"), {
+    cache: true,
+    tmdbId: null
+  })
+  assert.deepEqual(filmLookup(503, ""), { cache: false, tmdbId: null })
+  assert.deepEqual(filmLookup(404, ""), { cache: false, tmdbId: null })
 })
