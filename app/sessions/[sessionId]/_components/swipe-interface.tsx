@@ -292,14 +292,21 @@ export default function SwipeInterface({
             </div>
 
             {isHost && participantCount >= 1 && (
-              <Button
-                size="lg"
-                onClick={handleStartSession}
-                className="font-semibold"
-              >
-                <Play className="mr-2 size-5" />
-                Start Session
-              </Button>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <CriteriaDialog
+                  sessionId={sessionId}
+                  currentPreferences={preferences}
+                  variant="lobby"
+                />
+                <Button
+                  size="lg"
+                  onClick={handleStartSession}
+                  className="font-semibold"
+                >
+                  <Play className="mr-2 size-5" />
+                  Start Session
+                </Button>
+              </div>
             )}
 
             <p className="text-muted-foreground text-sm">
