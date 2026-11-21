@@ -43,8 +43,13 @@ export function CriteriaDialog({
     setOpen(next)
     if (next) {
       setOptions(null)
-      const result = await getSessionWatchlistOptions(sessionId)
-      setOptions(result.isSuccess ? result.data : [])
+      try {
+        const result = await getSessionWatchlistOptions(sessionId)
+        setOptions(result.isSuccess ? result.data : [])
+      } catch (error) {
+        console.error("Failed to load watchlist options:", error)
+        setOptions([])
+      }
     }
   }
 

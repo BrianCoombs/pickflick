@@ -108,7 +108,8 @@ async function getDisplayNames(
     name: string | null
     email: string
   }>(
-    sql`select id::text as id, name, email from neon_auth."user" where id::text = any(${userIds})`
+    // Drizzle expands an interpolated array into a list: in ($1, $2, ...)
+    sql`select id::text as id, name, email from neon_auth."user" where id::text in ${userIds}`
   )
   return new Map(
     rows.map(row => [row.id, row.name?.trim() || row.email.split("@")[0]])
