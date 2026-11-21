@@ -59,14 +59,33 @@ export const friendships = pgTable(
 ).enableRLS()
 
 // User connections to external movie sources
-export const userMovieSources = pgTable("user_movie_sources", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: varchar("user_id", { length: 255 }).notNull(),
-  sourceType: varchar("source_type", { length: 20 }).notNull(), // 'letterboxd', 'plex'
-  accessToken: text("access_token"),
-  refreshToken: text("refresh_token"),
-  metadata: jsonb("metadata"), // Store additional config like Plex server URL
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+// One row per user per source. Trakt rows hold OAuth tokens; Letterboxd rows
+// only hold the username (in metadata)
+export const userMovieSources = pgTable(
+  "user_movie_sources",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: varchar("user_id", { length: 255 }).notNull(),
+    sourceType: varchar("source_type", { length: 20 }).notNull(), // 'trakt', 'letterboxd'
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    metadata: jsonb("metadata"), // { username, expiresAt? }
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull()
+  },
+  table => ({
+    uniqueUserSource: unique().on(table.userId, table.sourceType)
+  })
+).enableRLS()
+
+export type SelectUserMovieSource = typeof userMovieSources.$inferSelect
+
+// Letterboxd film slug -> TMDb id. A slug's TMDb id never changes, so this
+// saves a film-page fetch per movie on every pool build. tmdbId is null when
+// the film page has no TMDb link
+export const letterboxdFilms = pgTable("letterboxd_films", {
+  slug: varchar("slug", { length: 255 }).primaryKey(),
+  tmdbId: integer("tmdb_id"),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 }).enableRLS()
 

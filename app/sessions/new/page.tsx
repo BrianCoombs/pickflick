@@ -71,6 +71,9 @@ export default function NewSessionPage() {
               onSubmit={handleCreateSession}
               loading={loading}
             />
+            <p className="text-muted-foreground mt-4 text-sm">
+              Want to use watchlists? Pick them in the lobby once friends join.
+            </p>
           </CardContent>
         </Card>
 

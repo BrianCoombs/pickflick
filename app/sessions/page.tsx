@@ -29,6 +29,12 @@ export default async function SessionsPage() {
         <p className="text-muted-foreground">
           Start swiping with friends to find your perfect movie
         </p>
+        <Link
+          href="/settings"
+          className="text-muted-foreground mt-2 inline-block text-sm underline underline-offset-4"
+        >
+          Link your Trakt or Letterboxd watchlist
+        </Link>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -7,6 +7,7 @@ A collaborative movie selection app where friends can swipe through movies toget
 - **Real-time Matching**: Swipe through movies with friends and get instant notifications when everyone matches
 - **Multiple Data Sources**: Integrates with TMDb for comprehensive movie data
 - **Smart Filtering**: Filter by genres, years, and ratings when creating sessions
+- **Watchlist Pools**: Build a session's movies from participants' Trakt and Letterboxd watchlists
 - **Social Sessions**: Create movie nights with friends using shareable session codes
 - **Beautiful UI**: Smooth animations and intuitive swipe interface
 
@@ -26,6 +27,7 @@ A collaborative movie selection app where friends can swipe through movies toget
 3. **API Keys**:
    - [TMDb API](https://www.themoviedb.org/settings/api) - Movie data (required)
    - [OMDb API](http://www.omdbapi.com/apikey.aspx) - Additional ratings (optional)
+   - [Trakt app](https://developer.trakt.tv/apps) - Watchlist sign-in (Client ID only; PKCE)
 
 ### Setup Instructions
 
@@ -72,6 +74,16 @@ A collaborative movie selection app where friends can swipe through movies toget
 1. Get a session code from your friend
 2. Click "Join Session"
 3. Enter the code and start swiping
+
+### Using watchlists
+1. Open **Profile** (top-right menu) and connect Trakt and/or enter your Letterboxd
+   username. Your Letterboxd watchlist must be public.
+2. In a session lobby, the host clicks **Choose Movies**, picks whose watchlists to
+   include, and the pool becomes every movie on those lists (up to 50, shuffled).
+3. While the Trakt app is in Development mode, only Trakt users added under the
+   app's Members tab can connect.
+
+PickFlick uses Trakt but is not endorsed or certified by Trakt.
 
 ### Swiping
 - **Right swipe / →** : Like the movie
