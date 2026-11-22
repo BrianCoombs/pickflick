@@ -18,3 +18,8 @@ export function linkedListLabel(
     .map(type => SOURCE_NAMES[type])
   return names.length ? names.join(" + ") : "no list"
 }
+
+// "1 person", "3 people"
+export function peopleCount(count: number): string {
+  return `${count} ${count === 1 ? "person" : "people"}`
+}
