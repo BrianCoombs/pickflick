@@ -16,10 +16,24 @@ import { TailwindIndicator } from "@/components/utilities/tailwind-indicator"
 import { cn } from "@/lib/utils"
 import { getAuthenticatedUser } from "@/lib/auth/server"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Bungee, IBM_Plex_Mono, Permanent_Marker } from "next/font/google"
 import "./globals.css"
 
-const inter = Inter({ subsets: ["latin"] })
+const display = Bungee({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-display"
+})
+const mono = IBM_Plex_Mono({
+  weight: ["400", "600"],
+  subsets: ["latin"],
+  variable: "--font-mono"
+})
+const marker = Permanent_Marker({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-marker"
+})
 
 // Every page reads the Neon Auth session cookie, so render on demand.
 export const dynamic = "force-dynamic"
@@ -45,19 +59,12 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          "bg-background mx-auto min-h-screen w-full scroll-smooth antialiased",
-          inter.className
-        )}
-      >
-        <Providers
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
+    <html
+      lang="en"
+      className={cn(display.variable, mono.variable, marker.variable)}
+    >
+      <body className="bg-background mx-auto min-h-[100dvh] w-full scroll-smooth antialiased">
+        <Providers>
           <PostHogUserIdentify />
           <PostHogPageview />
 

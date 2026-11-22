@@ -18,7 +18,6 @@ import { signOutAction } from "@/app/(auth)/login/actions"
 import { Menu, Film, X, LogOut, User, Settings } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState, useTransition } from "react"
-import { ThemeSwitcher } from "./utilities/theme-switcher"
 
 const signedInLinks = [{ href: "/sessions", label: "Sessions" }]
 
@@ -71,8 +70,6 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center space-x-4">
-          <ThemeSwitcher />
-
           {!user && (
             <>
               <Link href="/login">

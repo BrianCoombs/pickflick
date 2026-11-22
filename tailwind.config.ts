@@ -7,7 +7,6 @@ Configures Tailwind CSS for the app.
 import type { Config } from "tailwindcss"
 
 const config = {
-  darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -25,6 +24,18 @@ const config = {
     },
     extend: {
       colors: {
+        store: {
+          navy: "#0d1b4c",
+          "navy-light": "#1a2a66",
+          yellow: "#ffd400",
+          red: "#e4002b",
+          pink: "#ff5fa2",
+          paper: "#f4f1ea",
+          tape: "#1c1c1c",
+          "tape-edge": "#2b2b2b",
+          ink: "#dfe5ff",
+          mist: "#9fb0ff"
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -71,8 +82,17 @@ const config = {
       },
       borderRadius: {
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)"
+        md: "var(--radius)",
+        sm: "var(--radius)"
+      },
+      fontFamily: {
+        display: ["var(--font-display)", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+        marker: ["var(--font-marker)", "cursive"]
+      },
+      boxShadow: {
+        "offset-red": "3px 3px 0 #e4002b",
+        "offset-black": "3px 3px 0 #000000"
       },
       keyframes: {
         "accordion-down": {
