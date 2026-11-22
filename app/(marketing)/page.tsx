@@ -4,21 +4,14 @@ This server page is the marketing homepage.
 </ai_context>
 */
 
-"use server"
-
-import { FeaturesSection } from "@/components/landing/features"
 import { HeroSection } from "@/components/landing/hero"
+import { WatchlistSteps } from "@/components/landing/watchlist-steps"
 
-export default async function HomePage() {
+export default function HomePage() {
   return (
     <div className="pb-20">
       <HeroSection />
-      {/* social proof */}
-      <FeaturesSection />
-      {/* pricing */}
-      {/* faq */}
-      {/* blog */}
-      {/* footer */}
+      <WatchlistSteps />
     </div>
   )
 }
