@@ -94,7 +94,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
               Session {sessionId.slice(0, 8)} · {date}
             </div>
             <ReceiptRule />
-            <div className="font-display text-store-red my-1 text-base leading-tight">
+            <div className="font-display text-store-red-ink my-1 text-base leading-tight">
               {movie.title}
               {releaseYear && ` (${releaseYear})`}
             </div>

@@ -193,7 +193,7 @@ export function MoviePreferencesForm({
                 variant="link"
                 size="sm"
                 onClick={handleSelectAllGenres}
-                className="text-store-red h-auto min-h-0 p-0 text-xs"
+                className="text-store-red-ink h-auto min-h-0 p-0 text-xs"
               >
                 {selectedGenres.length === 0 ? "Select some" : "Clear all"}
               </Button>

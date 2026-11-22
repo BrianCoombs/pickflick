@@ -13,6 +13,8 @@ const config = {
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}"
   ],
+  // One theme; "class" so OS dark mode can't switch on dark: styles
+  darkMode: "class",
   prefix: "",
   theme: {
     container: {
@@ -29,6 +31,9 @@ const config = {
           "navy-light": "#1a2a66",
           yellow: "#ffd400",
           red: "#e4002b",
+          // Darker red for small text on paper and red fills behind small
+          // text; the brand red is ~4.3:1 on paper, below AA
+          "red-ink": "#b8001f",
           pink: "#ff5fa2",
           paper: "#f4f1ea",
           tape: "#1c1c1c",

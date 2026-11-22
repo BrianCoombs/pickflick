@@ -138,7 +138,7 @@ export function CriteriaDialog({
           </DialogDescription>
         </DialogHeader>
         {options === null ? (
-          <p className="text-muted-foreground py-8 text-center text-sm">
+          <p className="py-8 text-center text-sm text-neutral-600">
             Loading...
           </p>
         ) : (

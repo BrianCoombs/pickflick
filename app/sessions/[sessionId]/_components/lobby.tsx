@@ -15,7 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog"
-import { linkedListLabel } from "@/lib/store/format"
+import { linkedListLabel, peopleCount } from "@/lib/store/format"
 import { CriteriaDialog } from "./criteria-dialog"
 import { useSessionControls } from "./use-session-controls"
 
@@ -38,6 +38,7 @@ export function Lobby({
   const {
     shortCode,
     deleting,
+    starting,
     startSession,
     deleteSession,
     copyCode,
@@ -67,7 +68,7 @@ export function Lobby({
 
       {/* Rental card with the code */}
       <div className="paper border-store-navy mb-4 border-2 border-dashed p-3">
-        <div className="text-store-red text-[10px] font-semibold tracking-widest">
+        <div className="text-store-red-ink text-[10px] font-semibold tracking-widest">
           SESSION CODE
         </div>
         <div className="flex items-center justify-between gap-2">
@@ -101,19 +102,25 @@ export function Lobby({
         <div className="font-display mb-1 text-sm">
           At the counter · {participantCount}
         </div>
-        <ul>
-          {people.map(person => (
-            <li
-              key={person.userId}
-              className="flex justify-between gap-3 border-b border-dotted border-neutral-400 py-1.5 text-sm last:border-0"
-            >
-              <span className="min-w-0 truncate">{person.name}</span>
-              <span className="shrink-0 text-neutral-600">
-                {linkedListLabel(person.sources)}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {people.length > 0 ? (
+          <ul>
+            {people.map(person => (
+              <li
+                key={person.userId}
+                className="flex justify-between gap-3 border-b border-dotted border-neutral-400 py-1.5 text-sm last:border-0"
+              >
+                <span className="min-w-0 truncate">{person.name}</span>
+                <span className="shrink-0 text-neutral-600">
+                  {linkedListLabel(person.sources)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="py-1.5 text-sm text-neutral-600">
+            {peopleCount(participantCount)}
+          </p>
+        )}
       </div>
 
       {!isHost && (
@@ -129,8 +136,8 @@ export function Lobby({
             currentPreferences={preferences}
             variant="lobby"
           />
-          <Button size="lg" onClick={startSession}>
-            Start
+          <Button size="lg" onClick={startSession} disabled={starting}>
+            {starting ? "Starting..." : "Start"}
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>

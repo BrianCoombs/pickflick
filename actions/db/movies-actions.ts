@@ -11,6 +11,13 @@ import { buildPoolFromWatchlists } from "@/lib/watchlists/build"
 import type { WatchlistSourceRef } from "@/lib/watchlists/combine"
 import { getRequestOrigin } from "@/lib/watchlists/origin"
 import { traktRedirectUri } from "@/lib/watchlists/redirect"
+import {
+  everyoneLiked,
+  isSessionMember,
+  parseSwipeDirection,
+  recentMatchesLimit,
+  type SwipeDirection
+} from "@/lib/sessions/rules"
 
 export interface WatchlistPreferences {
   mode: "watchlists"
@@ -180,7 +187,7 @@ export async function joinMovieSession(
 export async function swipeMovie(
   sessionId: string,
   movieId: string,
-  direction: "left" | "right"
+  direction: SwipeDirection
 ): Promise<ActionState<{ matched: boolean; movieId?: string }>> {
   try {
     const user = await getAuthenticatedUser()
@@ -189,6 +196,25 @@ export async function swipeMovie(
     }
     const userId = user.id
 
+    const swipeDirection = parseSwipeDirection(direction)
+    if (!swipeDirection) {
+      return { isSuccess: false, message: "Invalid swipe" }
+    }
+
+    const [session] = await db
+      .select()
+      .from(movieSessions)
+      .where(eq(movieSessions.id, sessionId))
+      .limit(1)
+
+    if (!session) {
+      return { isSuccess: false, message: "Session not found" }
+    }
+
+    if (!isSessionMember(session.userIds, userId)) {
+      return { isSuccess: false, message: "You are not part of this session" }
+    }
+
     // Insert swipe
     await db
       .insert(swipes)
@@ -196,19 +222,19 @@ export async function swipeMovie(
         sessionId,
         userId,
         movieId,
-        direction
+        direction: swipeDirection
       })
       .onConflictDoUpdate({
         target: [swipes.sessionId, swipes.userId, swipes.movieId],
         set: {
-          direction,
+          direction: swipeDirection,
           swipedAt: new Date()
         }
       })
 
     // Check for match if swiped right
-    if (direction === "right") {
-      const match = await checkForMatch(sessionId, movieId)
+    if (swipeDirection === "right") {
+      const match = await checkForMatch(session, movieId)
       if (match) {
         return {
           isSuccess: true,
@@ -230,32 +256,17 @@ export async function swipeMovie(
 }
 
 async function checkForMatch(
-  sessionId: string,
+  session: { id: string; userIds: string[] },
   movieId: string
 ): Promise<boolean> {
-  // Get session details
-  const [session] = await db
-    .select()
-    .from(movieSessions)
-    .where(eq(movieSessions.id, sessionId))
-    .limit(1)
-
-  if (!session) return false
-
   // Get all swipes for this movie in this session
   const movieSwipes = await db
-    .select()
+    .select({ userId: swipes.userId, direction: swipes.direction })
     .from(swipes)
-    .where(
-      and(
-        eq(swipes.sessionId, sessionId),
-        eq(swipes.movieId, movieId),
-        or(eq(swipes.direction, "right"), eq(swipes.direction, "super"))
-      )
-    )
+    .where(and(eq(swipes.sessionId, session.id), eq(swipes.movieId, movieId)))
 
-  // Check if all users have swiped right
-  if (movieSwipes.length === session.userIds.length) {
+  // Check if every member has liked it
+  if (everyoneLiked(session.userIds, movieSwipes)) {
     // Update session with matched movie
     await db
       .update(movieSessions)
@@ -263,11 +274,11 @@ async function checkForMatch(
         matchedMovieId: movieId,
         status: "completed"
       })
-      .where(eq(movieSessions.id, sessionId))
+      .where(eq(movieSessions.id, session.id))
 
     // Record match in history
     await db.insert(matchHistory).values({
-      sessionId,
+      sessionId: session.id,
       movieId
     })
 
@@ -573,21 +584,17 @@ export async function getRecentMatches(
       return { isSuccess: false, message: "Unauthorized" }
     }
 
+    // Newest match first, by when the match happened
     const sessions = await db
       .select({
         id: movieSessions.id,
-        matchedMovieId: movieSessions.matchedMovieId
+        matchedMovieId: matchHistory.movieId
       })
-      .from(movieSessions)
-      .where(
-        and(
-          eq(movieSessions.status, "completed"),
-          sql`${movieSessions.matchedMovieId} is not null`,
-          sql`${user.id} = ANY(${movieSessions.userIds})`
-        )
-      )
-      .orderBy(desc(movieSessions.createdAt))
-      .limit(limit)
+      .from(matchHistory)
+      .innerJoin(movieSessions, eq(matchHistory.sessionId, movieSessions.id))
+      .where(sql`${user.id} = ANY(${movieSessions.userIds})`)
+      .orderBy(desc(matchHistory.matchedAt))
+      .limit(recentMatchesLimit(limit))
 
     const movieService = new MovieService()
     const matches = await Promise.all(

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { formatRuntime, linkedListLabel } from "./format"
+import { formatRuntime, linkedListLabel, peopleCount } from "./format"
 
 test("formats a runtime in hours and minutes", () => {
   assert.equal(formatRuntime(170), "2h 50m")
@@ -22,4 +22,10 @@ test("labels which watchlists a person has linked, Trakt first", () => {
     linkedListLabel([{ sourceType: "letterboxd" }, { sourceType: "trakt" }]),
     "Trakt + Letterboxd"
   )
+})
+
+test("people count reads as plain text", () => {
+  assert.equal(peopleCount(1), "1 person")
+  assert.equal(peopleCount(2), "2 people")
+  assert.equal(peopleCount(0), "0 people")
 })
