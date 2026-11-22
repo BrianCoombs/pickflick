@@ -3,18 +3,12 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { joinMovieSession } from "@/actions/db/movies-actions"
 import { toast } from "@/hooks/use-toast"
-import { Users } from "lucide-react"
+import Link from "next/link"
 
 export default function JoinSessionPage() {
   const router = useRouter()
@@ -63,37 +57,31 @@ export default function JoinSessionPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-md py-8">
-      <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold">Join Session</h1>
-        <p className="text-muted-foreground">
-          Enter the session code shared by your friend
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-md px-4 pb-12 pt-4">
+      <h1 className="store-heading mb-6 text-3xl sm:text-4xl">
+        Join with
+        <br />a code
+      </h1>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="size-5" />
-            Session Code
-          </CardTitle>
-          <CardDescription>
-            Enter the 8-character code shared by your friend
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <form onSubmit={handleJoinSession} className="space-y-4">
             <div>
-              <Label htmlFor="session-code">Enter Code</Label>
+              <Label htmlFor="session-code">Session code</Label>
               <Input
                 id="session-code"
                 type="text"
-                placeholder="e.g. a1b2c3d4"
+                placeholder="a1b2c3d4"
                 value={sessionCode}
                 onChange={e => setSessionCode(e.target.value)}
-                className="mt-1 text-center font-mono text-lg"
+                className="mt-1 text-center font-mono text-lg tracking-widest"
+                autoCapitalize="off"
+                autoCorrect="off"
                 autoFocus
               />
+              <p className="mt-2 text-xs text-neutral-600">
+                It&apos;s the 8 characters your friend sent you.
+              </p>
             </div>
 
             <Button
@@ -101,24 +89,18 @@ export default function JoinSessionPage() {
               disabled={loading || !sessionCode.trim()}
               className="w-full"
             >
-              {loading ? "Joining..." : "Join Session"}
+              {loading ? "Joining..." : "Join"}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <div className="mt-6 text-center">
-        <p className="text-muted-foreground text-sm">
-          Don't have a code?{" "}
-          <Button
-            variant="link"
-            className="p-0"
-            onClick={() => router.push("/sessions/new")}
-          >
-            Create a new session
-          </Button>
-        </p>
-      </div>
+      <p className="text-store-mist mt-6 text-sm">
+        No code?{" "}
+        <Link href="/sessions/new" className="underline underline-offset-4">
+          Start a new session
+        </Link>
+      </p>
     </div>
   )
 }

@@ -22,12 +22,16 @@ import {
 import type { LinkedSource, SourceType } from "@/lib/watchlists/sources"
 
 interface WatchlistSourcesProps {
+  email: string
+  memberSince: string | null
   sources: LinkedSource[]
   letterboxdEnabled: boolean
   notice?: { kind: "success" | "error"; text: string }
 }
 
 export function WatchlistSources({
+  email,
+  memberSince,
   sources,
   letterboxdEnabled,
   notice
@@ -70,7 +74,20 @@ export function WatchlistSources({
     })
 
   return (
-    <Card>
+    <Card className="overflow-hidden shadow-[6px_6px_0_#000]">
+      {/* Membership card band */}
+      <div className="bg-store-yellow text-store-navy flex items-center justify-between px-4 py-2">
+        <span className="font-display text-sm">PICKFLICK VIDEO</span>
+        <span className="text-[10px] font-semibold tracking-widest">
+          MEMBER
+        </span>
+      </div>
+      <div className="border-b border-dashed border-neutral-400 px-6 py-4 text-sm">
+        <div className="truncate font-semibold">{email}</div>
+        {memberSince && (
+          <div className="text-neutral-600">Member since {memberSince}</div>
+        )}
+      </div>
       <CardHeader>
         <CardTitle>Watchlists</CardTitle>
         <CardDescription>
@@ -86,10 +103,10 @@ export function WatchlistSources({
           </Alert>
         )}
 
-        <section className="flex items-center justify-between gap-4">
+        <section className="border-store-navy flex items-center justify-between gap-4 border-2 border-dashed p-3">
           <div>
-            <h3 className="font-medium">Trakt</h3>
-            <p className="text-muted-foreground text-sm">
+            <h3 className="font-display">Trakt</h3>
+            <p className="text-sm text-neutral-600">
               {trakt ? `Connected as @${trakt.username}` : "Not connected"}
             </p>
           </div>
@@ -110,11 +127,11 @@ export function WatchlistSources({
         </section>
 
         {letterboxdEnabled && (
-          <section className="space-y-3">
+          <section className="border-store-navy space-y-3 border-2 border-dashed p-3">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h3 className="font-medium">Letterboxd</h3>
-                <p className="text-muted-foreground text-sm">
+                <h3 className="font-display">Letterboxd</h3>
+                <p className="text-sm text-neutral-600">
                   {letterboxd
                     ? `Linked as @${letterboxd.username}`
                     : "Not linked"}
@@ -152,7 +169,7 @@ export function WatchlistSources({
                     {pending ? "Checking..." : "Save"}
                   </Button>
                 </div>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-xs text-neutral-600">
                   Your Letterboxd watchlist must be public (Settings → Privacy
                   on letterboxd.com).
                 </p>
@@ -166,9 +183,12 @@ export function WatchlistSources({
       </CardContent>
 
       <CardFooter>
-        <p className="text-muted-foreground text-xs">
+        <p className="text-xs text-neutral-600">
           PickFlick uses Trakt but is not endorsed or certified by Trakt.{" "}
-          <a href="/privacy" className="underline underline-offset-2">
+          <a
+            href="/privacy"
+            className="text-store-red underline underline-offset-2"
+          >
             Privacy
           </a>
         </p>

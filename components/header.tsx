@@ -6,159 +6,106 @@ This client component provides the header for the app.
 
 "use client"
 
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
-import { useUser } from "@/hooks/use-user"
 import { signOutAction } from "@/app/(auth)/login/actions"
-import { Menu, Film, X, LogOut, User, Settings } from "lucide-react"
+import { Logo } from "@/components/store/logo"
+import { useUser } from "@/hooks/use-user"
+import { cn } from "@/lib/utils"
+import { Menu, X } from "lucide-react"
 import Link from "next/link"
-import { useEffect, useState, useTransition } from "react"
-import { ThemeSwitcher } from "./utilities/theme-switcher"
+import { useState, useTransition } from "react"
 
-const signedInLinks = [{ href: "/sessions", label: "Sessions" }]
+interface HeaderProps {
+  // Smaller header for the swipe screen, so the poster fits on a phone
+  compact?: boolean
+}
 
-export default function Header() {
+export default function Header({ compact = false }: HeaderProps) {
   const { user } = useUser()
   const [, startTransition] = useTransition()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen)
+  const links = user
+    ? [
+        { href: "/sessions", label: "Sessions" },
+        { href: "/settings", label: "Profile" }
+      ]
+    : [
+        { href: "/login", label: "Log in" },
+        { href: "/signup", label: "Sign up" }
+      ]
+
+  const signOut = () => {
+    setIsMenuOpen(false)
+    startTransition(() => signOutAction())
   }
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0)
-    }
-
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
-
   return (
-    <header
-      className={`sticky top-0 z-50 transition-colors ${
-        isScrolled
-          ? "bg-background/80 shadow-sm backdrop-blur-sm"
-          : "bg-background"
-      }`}
-    >
-      <div className="mx-auto flex max-w-screen-2xl items-center justify-between p-4">
-        <div className="flex items-center space-x-2 hover:cursor-pointer hover:opacity-80">
-          <Film className="size-6" />
-          <Link href="/" className="text-xl font-bold">
-            PickFlick
-          </Link>
-        </div>
+    <header className="bg-store-navy sticky top-0 z-50">
+      <div
+        className={cn(
+          "mx-auto flex max-w-screen-lg items-center justify-between px-4",
+          compact ? "py-2" : "py-3"
+        )}
+      >
+        <Logo
+          href={user ? "/sessions" : "/"}
+          className={compact ? "text-base" : undefined}
+        />
 
-        <nav className="absolute left-1/2 hidden -translate-x-1/2 space-x-2 font-semibold md:flex">
-          {user &&
-            signedInLinks.map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="rounded-full px-3 py-1 hover:opacity-80"
-              >
-                {link.label}
-              </Link>
-            ))}
+        <nav className="hidden items-center gap-6 text-sm md:flex">
+          {links.map(link => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="hover:text-store-yellow"
+            >
+              {link.label.toLowerCase()}
+            </Link>
+          ))}
+          {user && (
+            <button onClick={signOut} className="hover:text-store-yellow">
+              sign out
+            </button>
+          )}
         </nav>
 
-        <div className="flex items-center space-x-4">
-          <ThemeSwitcher />
-
-          {!user && (
-            <>
-              <Link href="/login">
-                <Button variant="outline">Login</Button>
-              </Link>
-
-              <Link href="/signup">
-                <Button className="bg-blue-500 hover:bg-blue-600">
-                  Start Swiping
-                </Button>
-              </Link>
-            </>
-          )}
-
-          {user && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <User className="size-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="text-muted-foreground text-xs"
-                  disabled
-                >
-                  {user.email}
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/settings">
-                    <Settings className="mr-2 size-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => startTransition(() => signOutAction())}
-                  className="cursor-pointer"
-                >
-                  <LogOut className="mr-2 size-4" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          <div className="md:hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleMenu}
-              aria-label="Toggle menu"
-            >
-              {isMenuOpen ? (
-                <X className="size-6" />
-              ) : (
-                <Menu className="size-6" />
-              )}
-            </Button>
-          </div>
-        </div>
+        <button
+          className="flex size-11 items-center justify-center md:hidden"
+          onClick={() => setIsMenuOpen(open => !open)}
+          aria-label="Toggle menu"
+          aria-expanded={isMenuOpen}
+        >
+          {isMenuOpen ? <X className="size-6" /> : <Menu className="size-6" />}
+        </button>
       </div>
 
       {isMenuOpen && (
-        <nav className="bg-primary-foreground text-primary p-4 md:hidden">
-          <ul className="space-y-2">
-            <li>
-              <Link
-                href="/"
-                className="block hover:underline"
-                onClick={toggleMenu}
+        <nav className="paper border-store-navy absolute inset-x-0 top-full border-b-4 md:hidden">
+          <ul>
+            {links.map(link => (
+              <li
+                key={link.href}
+                className="border-b border-dotted border-neutral-400"
               >
-                Home
-              </Link>
-            </li>
-            {user &&
-              signedInLinks.map(link => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="block hover:underline"
-                    onClick={toggleMenu}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+                <Link
+                  href={link.href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className="font-display block px-4 py-3"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+            {user && (
+              <li>
+                <button
+                  onClick={signOut}
+                  className="font-display block w-full px-4 py-3 text-left"
+                >
+                  Sign out
+                </button>
+              </li>
+            )}
           </ul>
         </nav>
       )}

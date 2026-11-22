@@ -180,7 +180,7 @@ export async function joinMovieSession(
 export async function swipeMovie(
   sessionId: string,
   movieId: string,
-  direction: "left" | "right" | "super"
+  direction: "left" | "right"
 ): Promise<ActionState<{ matched: boolean; movieId?: string }>> {
   try {
     const user = await getAuthenticatedUser()
@@ -207,7 +207,7 @@ export async function swipeMovie(
       })
 
     // Check for match if swiped right
-    if (direction === "right" || direction === "super") {
+    if (direction === "right") {
       const match = await checkForMatch(sessionId, movieId)
       if (match) {
         return {
@@ -560,5 +560,58 @@ export async function deleteMovieSession(
   } catch (error) {
     console.error("Error deleting session:", error)
     return { isSuccess: false, message: "Failed to delete session" }
+  }
+}
+
+// The user's last few matched movies, newest first, for the shelf on /sessions
+export async function getRecentMatches(
+  limit = 8
+): Promise<ActionState<{ sessionId: string; title: string }[]>> {
+  try {
+    const user = await getAuthenticatedUser()
+    if (!user) {
+      return { isSuccess: false, message: "Unauthorized" }
+    }
+
+    const sessions = await db
+      .select({
+        id: movieSessions.id,
+        matchedMovieId: movieSessions.matchedMovieId
+      })
+      .from(movieSessions)
+      .where(
+        and(
+          eq(movieSessions.status, "completed"),
+          sql`${movieSessions.matchedMovieId} is not null`,
+          sql`${user.id} = ANY(${movieSessions.userIds})`
+        )
+      )
+      .orderBy(desc(movieSessions.createdAt))
+      .limit(limit)
+
+    const movieService = new MovieService()
+    const matches = await Promise.all(
+      sessions.map(async session => {
+        try {
+          const movie = await movieService.getEnrichedMovie(
+            Number(session.matchedMovieId)
+          )
+          return { sessionId: session.id, title: movie.title }
+        } catch {
+          return null
+        }
+      })
+    )
+
+    return {
+      isSuccess: true,
+      message: "Matches retrieved",
+      data: matches.filter(
+        (m): m is { sessionId: string; title: string } => m !== null
+      )
+    }
+  } catch (error) {
+    console.error("Error getting recent matches:", error)
+    return { isSuccess: false, message: "Failed to get matches" }
   }
 }

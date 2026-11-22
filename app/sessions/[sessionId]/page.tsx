@@ -5,6 +5,7 @@ import { movieSessions } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import SessionWrapper from "./_components/session-wrapper"
 import { TMDbAPI } from "@/lib/api/tmdb"
+import { getSessionWatchlistOptions } from "@/actions/db/watchlist-actions"
 
 interface SessionPageProps {
   params: Promise<{
@@ -53,17 +54,21 @@ export default async function SessionPage({ params }: SessionPageProps) {
   const moviePromises = (session.moviePool as number[]).map(movieId =>
     tmdb.getMovie(movieId).catch(() => null)
   )
-  const movieResults = await Promise.all(moviePromises)
+  const [movieResults, peopleResult] = await Promise.all([
+    Promise.all(moviePromises),
+    getSessionWatchlistOptions(sessionId)
+  ])
   const movies = movieResults.filter(movie => movie !== null)
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <SessionWrapper
         sessionId={sessionId}
         movies={movies}
         initialParticipantCount={session.userIds.length}
         initialSessionStarted={session.status === "started"}
         isHost={session.hostUserId === userId}
+        people={peopleResult.isSuccess ? peopleResult.data : []}
         preferences={session.preferences}
       />
     </div>

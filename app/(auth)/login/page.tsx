@@ -19,7 +19,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { authClient } from "@/lib/auth/client"
-import { Film } from "lucide-react"
 import Link from "next/link"
 import { useActionState } from "react"
 import { loginAction } from "./actions"
@@ -41,14 +40,10 @@ export default function LoginPage() {
   )
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader className="text-center">
-        <div className="mb-2 flex items-center justify-center gap-2">
-          <Film className="size-6" />
-          <span className="text-xl font-bold">PickFlick</span>
-        </div>
-        <CardTitle>Welcome back</CardTitle>
-        <CardDescription>Sign in to your account</CardDescription>
+    <Card className="w-full max-w-sm shadow-[6px_6px_0_#000]">
+      <CardHeader>
+        <CardTitle>Sign in</CardTitle>
+        <CardDescription>Welcome back.</CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -80,9 +75,9 @@ export default function LoginPage() {
         </Button>
 
         <div className="flex items-center gap-3">
-          <Separator className="flex-1" />
-          <span className="text-muted-foreground text-xs">or</span>
-          <Separator className="flex-1" />
+          <Separator className="flex-1 bg-neutral-400" />
+          <span className="text-xs text-neutral-600">or</span>
+          <Separator className="flex-1 bg-neutral-400" />
         </div>
       </CardContent>
 
@@ -114,9 +109,9 @@ export default function LoginPage() {
             {isPending ? "Signing in..." : "Sign in"}
           </Button>
 
-          <p className="text-muted-foreground text-sm">
+          <p className="text-sm text-neutral-600">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="text-primary underline">
+            <Link href="/signup" className="text-store-red underline">
               Sign up
             </Link>
           </p>

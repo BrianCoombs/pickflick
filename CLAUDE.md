@@ -60,3 +60,6 @@ LETTERBOXD_ENABLED - set to "false" to hide Letterboxd if it starts blocking us 
 ## Watchlists
 Code in lib/watchlists/ (pure parsing and pool logic has unit tests: npm run test:unit).
 Trakt connect routes: app/api/connect/trakt. Letterboxd is read from public pages; slug→TMDb ids cached in letterboxd_films.
+
+## Look
+One theme, a 90s video rental store (no light/dark toggle). Palette and fonts live in app/globals.css and tailwind.config.ts (`store.*` colours; `font-display` Bungee, `font-mono` IBM Plex Mono, `font-marker` Permanent Marker). Reusable store pieces are in components/store/. Design: docs/superpowers/specs/2026-11-21-video-store-redesign-design.md. Check screens at phone size first.

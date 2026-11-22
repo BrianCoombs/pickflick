@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card"
 import { createMovieSession } from "@/actions/db/movies-actions"
 import { toast } from "@/hooks/use-toast"
-import { Film, Users } from "lucide-react"
 import { MoviePreferencesForm } from "@/components/movie-preferences-form"
 
 export default function NewSessionPage() {
@@ -46,55 +45,28 @@ export default function NewSessionPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl py-8">
-      <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold">Create New Session</h1>
-        <p className="text-muted-foreground">
-          Set your preferences and start swiping
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-2xl px-4 pb-12 pt-4">
+      <h1 className="store-heading mb-6 text-3xl sm:text-4xl">New session</h1>
 
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Film className="size-5" />
-              Movie Preferences
-            </CardTitle>
-            <CardDescription>
-              Choose your preferred genres and filters
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <MoviePreferencesForm
-              mode="create"
-              onSubmit={handleCreateSession}
-              loading={loading}
-            />
-            <p className="text-muted-foreground mt-4 text-sm">
-              Want to use watchlists? Pick them in the lobby once friends join.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="size-5" />
-              Invite Friends
-            </CardTitle>
-            <CardDescription>
-              You can share the session code after creating it
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-sm">
-              Create the session first, then share the code with your friends so
-              they can join and start swiping together.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>What kind of movie?</CardTitle>
+          <CardDescription>
+            Pick genres and years, or leave them open. You can change this in
+            the lobby.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MoviePreferencesForm
+            mode="create"
+            onSubmit={handleCreateSession}
+            loading={loading}
+          />
+          <p className="mt-4 text-sm text-neutral-600">
+            Want to use watchlists? Pick them in the lobby once friends join.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

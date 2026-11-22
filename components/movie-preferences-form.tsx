@@ -193,7 +193,7 @@ export function MoviePreferencesForm({
                 variant="link"
                 size="sm"
                 onClick={handleSelectAllGenres}
-                className="h-auto p-0 text-sm"
+                className="text-store-red h-auto min-h-0 p-0 text-xs"
               >
                 {selectedGenres.length === 0 ? "Select some" : "Clear all"}
               </Button>
@@ -216,7 +216,7 @@ export function MoviePreferencesForm({
               ))}
             </div>
             {selectedGenres.length === 0 && (
-              <p className="text-muted-foreground mt-2 text-xs">
+              <p className="mt-2 text-xs text-neutral-600">
                 No genres selected - will show movies from all genres
               </p>
             )}
@@ -291,7 +291,7 @@ export function MoviePreferencesForm({
               </div>
             </div>
             {useAllYears && (
-              <p className="text-muted-foreground text-xs">
+              <p className="text-xs text-neutral-600">
                 Showing movies from all years
               </p>
             )}

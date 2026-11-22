@@ -9,7 +9,7 @@ A collaborative movie selection app where friends can swipe through movies toget
 - **Smart Filtering**: Filter by genres, years, and ratings when creating sessions
 - **Watchlist Pools**: Build a session's movies from participants' Trakt and Letterboxd watchlists
 - **Social Sessions**: Create movie nights with friends using shareable session codes
-- **Beautiful UI**: Smooth animations and intuitive swipe interface
+- **Video store look**: Navy and marquee yellow, VHS cases, a rental-receipt match screen; built for phones first
 
 ## Tech Stack
 
@@ -86,9 +86,8 @@ A collaborative movie selection app where friends can swipe through movies toget
 PickFlick uses Trakt but is not endorsed or certified by Trakt.
 
 ### Swiping
-- **Right swipe / →** : Like the movie
-- **Left swipe / ←** : Pass on the movie  
-- **Up swipe / ↑** : Super like (saves for later)
+- **Rent it** (drag the poster right, or →): you'd watch it
+- **Pass** (drag left, or ←): skip it
 
 When all participants swipe right on the same movie, it's a match! 🎉
 
