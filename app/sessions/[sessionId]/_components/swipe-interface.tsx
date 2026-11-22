@@ -193,7 +193,7 @@ function Swiper({
   const meta = [releaseYear, genre].filter(Boolean).join(" · ")
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-56px)] w-full max-w-md flex-col overflow-hidden">
+    <div className="mx-auto flex h-[calc(100dvh-60px)] w-full max-w-md flex-col overflow-hidden">
       {statusBar}
 
       {/* Poster in a clamshell case */}
