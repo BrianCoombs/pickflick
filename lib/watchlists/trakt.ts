@@ -30,9 +30,11 @@ function clientId(): string {
   return id
 }
 
-function headers(accessToken?: string): HeadersInit {
+// Trakt's firewall rejects requests without a real User-Agent (403)
+export function traktHeaders(accessToken?: string): HeadersInit {
   return {
     "Content-Type": "application/json",
+    "User-Agent": "PickFlick/1.0",
     "trakt-api-version": "2",
     "trakt-api-key": clientId(),
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
@@ -46,7 +48,7 @@ async function request<T>(
   const { accessToken, ...rest } = init
   const res = await fetch(`${API_URL}${path}`, {
     ...rest,
-    headers: headers(accessToken),
+    headers: traktHeaders(accessToken),
     cache: "no-store"
   })
   if (!res.ok) {
