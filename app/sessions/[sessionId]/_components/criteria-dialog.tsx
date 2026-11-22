@@ -115,9 +115,9 @@ export function CriteriaDialog({
             Choose Movies
           </Button>
         ) : (
-          <Button variant="outline" size="sm">
-            <Settings2 className="mr-2 size-4" />
-            Change Criteria
+          <Button variant="outline" size="sm" className="shadow-none">
+            <Settings2 />
+            Change movies
           </Button>
         )}
       </DialogTrigger>

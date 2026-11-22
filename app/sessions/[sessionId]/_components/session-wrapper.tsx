@@ -3,6 +3,7 @@
 import { useSessionParticipants } from "@/hooks/use-session-participants"
 import SwipeInterface from "./swipe-interface"
 import type { Movie } from "@/lib/api/tmdb"
+import type { WatchlistOption } from "@/actions/db/watchlist-actions"
 
 interface SessionWrapperProps {
   sessionId: string
@@ -10,6 +11,7 @@ interface SessionWrapperProps {
   initialParticipantCount: number
   initialSessionStarted: boolean
   isHost: boolean
+  people: WatchlistOption[]
   preferences?: any
 }
 
@@ -19,6 +21,7 @@ export default function SessionWrapper({
   initialParticipantCount,
   initialSessionStarted,
   isHost,
+  people,
   preferences
 }: SessionWrapperProps) {
   const { participantCount, sessionStarted } = useSessionParticipants({
@@ -34,6 +37,7 @@ export default function SessionWrapper({
       participantCount={participantCount}
       sessionStarted={sessionStarted}
       isHost={isHost}
+      people={people}
       preferences={preferences}
     />
   )

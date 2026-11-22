@@ -180,7 +180,7 @@ export async function joinMovieSession(
 export async function swipeMovie(
   sessionId: string,
   movieId: string,
-  direction: "left" | "right" | "super"
+  direction: "left" | "right"
 ): Promise<ActionState<{ matched: boolean; movieId?: string }>> {
   try {
     const user = await getAuthenticatedUser()
@@ -207,7 +207,7 @@ export async function swipeMovie(
       })
 
     // Check for match if swiped right
-    if (direction === "right" || direction === "super") {
+    if (direction === "right") {
       const match = await checkForMatch(sessionId, movieId)
       if (match) {
         return {
