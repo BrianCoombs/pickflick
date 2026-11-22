@@ -115,9 +115,14 @@ export function CriteriaDialog({
             Choose Movies
           </Button>
         ) : (
-          <Button variant="outline" size="sm" className="shadow-none">
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-11 min-w-11 px-2 shadow-none sm:px-3"
+            aria-label="Change movies"
+          >
             <Settings2 />
-            Change movies
+            <span className="hidden sm:inline">Change movies</span>
           </Button>
         )}
       </DialogTrigger>

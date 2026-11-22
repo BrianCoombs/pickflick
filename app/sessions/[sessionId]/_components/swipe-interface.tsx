@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/hooks/use-toast"
 import { TMDbAPI, type Movie } from "@/lib/api/tmdb"
+import { swipeKeyDirection } from "@/lib/store/keys"
 import { swipeDecision } from "@/lib/store/swipe"
 import { CriteriaDialog } from "./criteria-dialog"
 import { Lobby } from "./lobby"
@@ -65,6 +66,7 @@ function Swiper({
   const [currentIndex, setCurrentIndex] = useState(0)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
+  const leavingRef = useRef(false)
   const cardRef = useRef<HTMLDivElement>(null)
 
   // The card follows the finger; it leans and shows a stamp as it moves
@@ -95,6 +97,8 @@ function Swiper({
       if (!result.isSuccess) throw new Error(result.message)
 
       if (result.data.matched) {
+        // Stay locked while the match page loads, so no second swipe slips in
+        leavingRef.current = true
         router.push(`/sessions/${sessionId}/match`)
         return
       }
@@ -108,15 +112,31 @@ function Swiper({
       })
       animate(x, 0, { type: "spring", stiffness: 400, damping: 30 })
     } finally {
-      busyRef.current = false
-      setBusy(false)
+      if (!leavingRef.current) {
+        busyRef.current = false
+        setBusy(false)
+      }
     }
   }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") swipe("left")
-      if (e.key === "ArrowRight") swipe("right")
+      const target = e.target as HTMLElement | null
+      const direction = swipeKeyDirection(
+        {
+          key: e.key,
+          repeat: e.repeat,
+          altKey: e.altKey,
+          ctrlKey: e.ctrlKey,
+          metaKey: e.metaKey,
+          shiftKey: e.shiftKey,
+          defaultPrevented: e.defaultPrevented,
+          targetTag: target?.tagName ?? "",
+          targetEditable: target?.isContentEditable ?? false
+        },
+        document.querySelector("[role=dialog], [role=alertdialog]") !== null
+      )
+      if (direction) swipe(direction)
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
