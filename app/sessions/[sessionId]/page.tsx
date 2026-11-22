@@ -57,7 +57,7 @@ export default async function SessionPage({ params }: SessionPageProps) {
   const movies = movieResults.filter(movie => movie !== null)
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex flex-1 flex-col">
       <SessionWrapper
         sessionId={sessionId}
         movies={movies}
