@@ -13,12 +13,17 @@ import { toast } from "@/hooks/use-toast"
 export function useSessionControls(sessionId: string) {
   const router = useRouter()
   const [deleting, setDeleting] = useState(false)
+  const [starting, setStarting] = useState(false)
   const shortCode = sessionId.slice(0, 8).toLowerCase()
 
+  // Stays true after a successful start; the participants poll swaps the
+  // lobby for the swipe screen
   const startSession = async () => {
+    setStarting(true)
     try {
       const result = await startMovieSession(sessionId)
       if (!result.isSuccess) {
+        setStarting(false)
         toast({
           title: "Error",
           description: result.message,
@@ -26,6 +31,7 @@ export function useSessionControls(sessionId: string) {
         })
       }
     } catch {
+      setStarting(false)
       toast({
         title: "Error",
         description: "Failed to start session",
@@ -97,6 +103,7 @@ export function useSessionControls(sessionId: string) {
   return {
     shortCode,
     deleting,
+    starting,
     startSession,
     deleteSession,
     copyCode,

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { animate, motion, useMotionValue, useTransform } from "framer-motion"
 import { Trash2 } from "lucide-react"
@@ -64,6 +64,7 @@ function Swiper({
   const router = useRouter()
   const { deleting, deleteSession } = useSessionControls(sessionId)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [brokenPosterId, setBrokenPosterId] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
   const leavingRef = useRef(false)
@@ -76,6 +77,12 @@ function Swiper({
   const rentOpacity = useTransform(x, [20, 110], [0, 1])
 
   const currentMovie = movies[currentIndex]
+
+  // Re-centre before the next card paints. Setting x in swipe() would move
+  // the old card back to the middle for a frame before the new one mounts.
+  useLayoutEffect(() => {
+    x.set(0)
+  }, [currentIndex, x])
 
   const swipe = async (direction: Direction) => {
     // A ref, not just state, so a double tap in the same frame can't sneak in
@@ -103,7 +110,6 @@ function Swiper({
         return
       }
       setCurrentIndex(index => index + 1)
-      x.set(0)
     } catch {
       toast({
         title: "Error",
@@ -205,7 +211,10 @@ function Swiper({
     )
   }
 
-  const posterUrl = TMDbAPI.getPosterUrl(currentMovie.poster_path)
+  const posterUrl =
+    brokenPosterId === currentMovie.id
+      ? null
+      : TMDbAPI.getPosterUrl(currentMovie.poster_path)
   const releaseYear = currentMovie.release_date
     ? new Date(currentMovie.release_date).getFullYear()
     : null
@@ -217,7 +226,9 @@ function Swiper({
       {statusBar}
 
       {/* Poster in a clamshell case */}
-      <div className="flex min-h-0 flex-1 items-center justify-center px-6">
+      {/* A size container, so the case can fit 2:3 inside whichever of
+          width or height runs out first */}
+      <div className="flex min-h-0 flex-1 items-center justify-center px-6 [container-type:size]">
         <motion.div
           key={currentMovie.id}
           ref={cardRef}
@@ -238,7 +249,7 @@ function Swiper({
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.2 }}
-          className="bg-store-tape relative aspect-[2/3] h-full max-h-full max-w-full cursor-grab select-none rounded-[3px] p-2 active:cursor-grabbing"
+          className="bg-store-tape relative aspect-[2/3] w-[min(100cqw,calc(100cqh*2/3))] cursor-grab select-none rounded-[3px] p-2 active:cursor-grabbing"
         >
           {posterUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -246,11 +257,12 @@ function Swiper({
               src={posterUrl}
               alt={currentMovie.title}
               draggable={false}
+              onError={() => setBrokenPosterId(currentMovie.id)}
               className="size-full object-cover"
             />
           ) : (
             <div className="bg-store-tape-edge flex size-full items-end p-3">
-              <span className="font-display text-xl text-white">
+              <span className="font-display min-w-0 break-words text-xl text-white">
                 {currentMovie.title}
               </span>
             </div>

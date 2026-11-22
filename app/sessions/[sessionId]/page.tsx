@@ -5,7 +5,10 @@ import { movieSessions } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import SessionWrapper from "./_components/session-wrapper"
 import { TMDbAPI } from "@/lib/api/tmdb"
-import { getSessionWatchlistOptions } from "@/actions/db/watchlist-actions"
+import {
+  getSessionWatchlistOptions,
+  type WatchlistOption
+} from "@/actions/db/watchlist-actions"
 
 interface SessionPageProps {
   params: Promise<{
@@ -54,9 +57,12 @@ export default async function SessionPage({ params }: SessionPageProps) {
   const moviePromises = (session.moviePool as number[]).map(movieId =>
     tmdb.getMovie(movieId).catch(() => null)
   )
-  const [movieResults, peopleResult] = await Promise.all([
+  // People are only shown in the lobby, and a failed lookup shouldn't take
+  // the whole page down
+  const sessionStarted = session.status === "started"
+  const [movieResults, people] = await Promise.all([
     Promise.all(moviePromises),
-    getSessionWatchlistOptions(sessionId)
+    sessionStarted ? [] : loadPeople(sessionId)
   ])
   const movies = movieResults.filter(movie => movie !== null)
 
@@ -66,11 +72,21 @@ export default async function SessionPage({ params }: SessionPageProps) {
         sessionId={sessionId}
         movies={movies}
         initialParticipantCount={session.userIds.length}
-        initialSessionStarted={session.status === "started"}
+        initialSessionStarted={sessionStarted}
         isHost={session.hostUserId === userId}
-        people={peopleResult.isSuccess ? peopleResult.data : []}
+        people={people}
         preferences={session.preferences}
       />
     </div>
   )
+}
+
+async function loadPeople(sessionId: string): Promise<WatchlistOption[]> {
+  try {
+    const result = await getSessionWatchlistOptions(sessionId)
+    return result.isSuccess ? result.data : []
+  } catch (error) {
+    console.error("Error loading session people:", error)
+    return []
+  }
 }

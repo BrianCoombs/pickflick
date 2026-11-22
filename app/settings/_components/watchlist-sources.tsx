@@ -187,7 +187,7 @@ export function WatchlistSources({
           PickFlick uses Trakt but is not endorsed or certified by Trakt.{" "}
           <a
             href="/privacy"
-            className="text-store-red underline underline-offset-2"
+            className="text-store-red-ink underline underline-offset-2"
           >
             Privacy
           </a>

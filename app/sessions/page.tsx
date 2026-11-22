@@ -8,6 +8,7 @@ import { Sticker } from "@/components/store/sticker"
 import { Shelf, TapeSpine } from "@/components/store/tape-spine"
 import { VhsCase } from "@/components/store/vhs-case"
 import { getAuthenticatedUser } from "@/lib/auth/server"
+import { peopleCount } from "@/lib/store/format"
 
 export default async function SessionsPage() {
   const user = await getAuthenticatedUser()
@@ -49,9 +50,7 @@ export default async function SessionsPage() {
             key={session.id}
             href={`/sessions/${session.id}`}
             title={`Session ${session.id.slice(0, 8)}`}
-            subtitle={`${session.userIds.length} ${
-              session.userIds.length === 1 ? "person" : "people"
-            } · back to swiping`}
+            subtitle={`${peopleCount(session.userIds.length)} · waiting in the lobby`}
           />
         ))}
       </div>

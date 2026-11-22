@@ -30,7 +30,7 @@ const toastVariants = cva(
     variants: {
       variant: {
         default: "bg-store-paper text-store-navy",
-        destructive: "destructive bg-store-red text-store-paper group"
+        destructive: "destructive bg-store-red-ink text-store-paper group"
       }
     },
     defaultVariants: {

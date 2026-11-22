@@ -11,7 +11,7 @@ const buttonVariants = cva(
       variant: {
         // Yellow with a red drop shadow
         default: "bg-store-yellow text-store-navy shadow-offset-red",
-        destructive: "bg-store-red text-store-paper shadow-offset-black",
+        destructive: "bg-store-red-ink text-store-paper shadow-offset-black",
         // Paper with a black drop shadow
         outline: "bg-store-paper text-store-navy shadow-offset-black",
         secondary: "bg-store-paper text-store-navy shadow-offset-black",

@@ -30,8 +30,8 @@ navy walls, marquee yellow, red, sticker pink and off-white label paper.
     --muted-foreground: 229 100% 81%;
     --accent: 227 59% 25%;
     --accent-foreground: 229 100% 94%;
-    /* red #e4002b */
-    --destructive: 349 100% 45%;
+    /* darker red #b8001f, so small error text on paper passes AA */
+    --destructive: 350 100% 36%;
     --destructive-foreground: 42 31% 94%;
     --border: 227 59% 25%;
     --input: 227 71% 17%;
