@@ -123,7 +123,7 @@ export function Lobby({
       )}
 
       {isHost && (
-        <div className="mt-auto grid gap-3 pt-6">
+        <div className="mt-auto grid gap-3 pt-6 md:mt-4">
           <CriteriaDialog
             sessionId={sessionId}
             currentPreferences={preferences}
