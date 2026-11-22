@@ -28,13 +28,23 @@ export default async function SettingsPage({
     : { sources: [], letterboxdEnabled: false }
 
   return (
-    <div className="container mx-auto max-w-2xl py-8">
-      <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold">Profile</h1>
-        <p className="text-muted-foreground">{user.email}</p>
-      </div>
+    <div className="mx-auto w-full max-w-lg px-4 pb-12 pt-4">
+      <h1 className="store-heading mb-6 text-3xl sm:text-4xl">
+        Your
+        <br />
+        membership
+      </h1>
 
       <WatchlistSources
+        email={user.email}
+        memberSince={
+          user.createdAt
+            ? new Date(user.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                year: "numeric"
+              })
+            : null
+        }
         sources={sources}
         letterboxdEnabled={letterboxdEnabled}
         notice={
