@@ -1,142 +1,125 @@
-# Watchlist pools Implementation Plan
+# Video store redesign Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Let the host build a session's movie pool from participants' Trakt and Letterboxd watchlists.
+**Goal:** Give every PickFlick screen a 90s video store look with a custom store prop per screen, phone-first, plus drag-to-swipe.
 
-**Architecture:** Pure parsing/pool logic in `lib/watchlists/` with unit tests; Trakt (PKCE) and Letterboxd (public HTML) fetchers on top; server actions and two API routes for linking; the existing criteria form gains a "Watchlists" mode. Watchlists are fetched live on every pool build; only Letterboxd slug→TMDb matches are cached.
+**Architecture:** Global palette and fonts via CSS variables and `next/font`, so shadcn pieces inherit the look; a small `components/store/` kit (logo, sticker, VHS case, tape spine, paper panel, receipt) reused across screens; per-screen markup rewrites. New behaviour is limited to drag-to-swipe, the lobby people list, the recent-matches shelf and the receipt's swipe count. Pure logic gets unit tests; screens are checked by phone-size screenshots.
 
-**Tech Stack:** Next.js 16 (App Router, server actions), Drizzle + Neon Postgres, Neon Auth, shadcn/ui, Node's built-in test runner via `tsx`.
+**Tech Stack:** Next.js 16, Tailwind 3, shadcn/ui, framer-motion 11, Drizzle/Neon, `node --test` via tsx.
 
-**Spec:** `docs/superpowers/specs/2026-11-21-watchlist-pool-design.md`
+**Spec:** `docs/superpowers/specs/2026-11-21-video-store-redesign-design.md` (mockups: `.superpowers/brainstorm/59802-1795310659/content/vhs-copy.html` option B, `screens.html`)
+
+The previous plan (watchlist pools) is in git history.
 
 ## Global Constraints
 
-- Movies only. Pool size stays 50 (random sample of the union).
-- Trakt: PKCE (S256), no client secret. Env `TRAKT_CLIENT_ID`. Authorize `https://auth.trakt.tv/oauth/authorize`; token/revoke `https://api.trakt.tv/oauth/token`, `/oauth/revoke`; headers `trakt-api-version: 2`, `trakt-api-key: <client id>`.
-- Redirect URI: `${origin}/api/connect/trakt/callback`.
-- Letterboxd behind `LETTERBOXD_ENABLED` (anything but `"false"` = on). Browser user agent on every request. About 5 film-page fetches at a time.
-- Per-source time budget about 20s. One failed source never blocks the others.
-- Required copy: "Your Letterboxd watchlist must be public (Settings → Privacy on letterboxd.com)." and "PickFlick uses Trakt but is not endorsed or certified by Trakt".
-- `source_type` values: `trakt`, `letterboxd`. Watchlist preferences: `{ mode: "watchlists", sources: [{ userId, sourceType }] }`; no `mode` means genre/year filters.
-- Every server action/route checks `getAuthenticatedUser()`; session actions check membership.
+- Palette: navy `#0d1b4c`, yellow `#ffd400`, red `#e4002b`, pink `#ff5fa2`, paper `#f4f1ea`, tape `#1c1c1c`/`#2b2b2b`, text `#dfe5ff`/`#9fb0ff`.
+- Fonts: Bungee (headings, buttons, uppercase), IBM Plex Mono (body), Permanent Marker (stickers only).
+- Square corners; buttons have a hard 3px offset shadow (red under yellow, black under paper).
+- No light/dark toggle; no `next-themes`.
+- Phone first: no horizontal scroll at 360px; tap targets ≥ 44px; swipe screen fits a 390×844 viewport; use `dvh`.
+- Copy exactly as in the spec; no slogans or jokes. Front page: "What are we watching?" / "Swipe with your friends until you all like the same movie." / "Start a session" / sticker "New: pull movies from your watchlists" / "New: watchlists" steps.
+- Swipe choices: Pass and Rent it only. Server still counts stored `super` rows as likes.
 
 ## Review Focus
 
-1. Letterboxd user with a private or nonexistent watchlist → clear error when saving; skipped with a toast when building the pool.
-2. Trakt access token expired → refreshed transparently; refresh revoked → source reported as failed, not a 500.
-3. Every selected source fails or all lists are empty → nothing saved, the user sees an error, the old pool stays.
-4. Same movie on several lists → appears once.
-5. Letterboxd watchlist longer than one page (more than 28 films) → all pages read.
+1. Dragging the poster on a phone while the page could scroll → horizontal drag swipes, vertical drag scrolls, buttons never fire from a drag.
+2. A movie with no poster or no trailer → sleeve shows the title on tape black; match page hides Watch trailer and still offers Start a new session.
+3. Long movie titles and long participant names at 360px → wrap or truncate, never overflow.
+4. A user with no past matches or no active sessions → shelf and extra cases hidden, no empty frames.
+5. Rapid double tap on Rent it, or a drag release during a pending swipe → one swipe recorded.
 
 ---
 
-### Task 0: Letterboxd-from-Vercel check (throwaway)
+### Task 1: Foundation (fonts, palette, no theme toggle)
 
-- [x] Add `app/api/debug/letterboxd/route.ts` that fetches one public watchlist page and one film page and returns status codes and whether slugs/TMDb ID were found.
-- [x] Push the branch, call the route on the Vercel preview, record the result here, delete the route.
+**Files:** `app/layout.tsx`, `app/globals.css`, `tailwind.config.ts`, `components/utilities/providers.tsx`, `components/ui/button.tsx`, delete `components/utilities/theme-switcher.tsx`.
 
-### Task 1: Test runner and pure watchlist logic
+- [ ] Load Bungee, IBM Plex Mono (400, 600), Permanent Marker with `next/font/google` as CSS vars `--font-display`, `--font-mono`, `--font-marker`; body uses mono.
+- [ ] Rewrite `:root` shadcn variables for the store palette (background navy, card/popover paper with navy text, primary yellow, destructive red, radius 0); drop the `.dark` block.
+- [ ] Tailwind: `colors.store.{navy,yellow,red,pink,paper,tape,ink,mist}`, `fontFamily.{display,mono,marker}`, `boxShadow.{offset-red,offset-black}`.
+- [ ] `@layer components`: `.store-heading` (Bungee yellow, red text-shadow), `.paper` panel.
+- [ ] Button: square, Bungee uppercase; `default` = yellow + red offset shadow, `secondary`/`outline` = paper + black offset shadow; min height 44px.
+- [ ] Remove `next-themes` provider and `ThemeSwitcher` usages.
+- [ ] `npm run type-check && npm run build` pass. Commit.
 
-**Files:** Create `lib/watchlists/letterboxd-parse.ts`, `lib/watchlists/pool.ts`, tests beside them, fixtures in `lib/watchlists/__fixtures__/`. Modify `package.json`.
+### Task 2: Store kit + pure helpers (TDD)
 
-**Produces:**
-- `parseWatchlistSlugs(html: string): string[]`
-- `isWatchlistPage(html: string): boolean`
-- `parseFilmTmdbId(html: string): number | null`
-- `buildWatchlistPool(lists: number[][], size: number, random?: () => number): number[]` (union, dedupe, shuffle, slice)
-
-- [x] Add `tsx` dev dependency; scripts `test:unit` = `node --import tsx --test "lib/**/*.test.ts"`, `test` = `npm run test:unit`.
-- [x] Tests: slugs parsed from a saved watchlist page fixture (count > 0, first slug matches); empty list page → `[]`; TMDb ID parsed from a film fixture (`parasite-2019` → `496243`); missing → `null`; pool dedupes `[[1,2],[2,3]]` → set `{1,2,3}`; size cap respected.
-- [x] Implement; run `npm run test:unit` → pass. Commit.
-
-### Task 2: Schema
-
-**Files:** Modify `db/schema/movies-schema.ts`; generated migration in `db/migrations/`.
-
-- [x] Unique `(user_id, source_type)` on `user_movie_sources`; new `letterboxd_films (slug varchar(255) pk, tmdb_id integer null, updated_at)` with `.enableRLS()`. Export types.
-- [x] `npm run db:generate`, review SQL, `npm run db:migrate`. Commit.
-
-### Task 3: Trakt client and source store
-
-**Files:** Create `lib/watchlists/trakt.ts`, `lib/watchlists/pkce.ts` (+ test), `lib/watchlists/sources.ts`.
+**Files:** Create `components/store/{logo,sticker,vhs-case,tape-spine,paper,receipt}.tsx`, `lib/store/format.ts` + test, `lib/store/swipe.ts` + test.
 
 **Produces:**
-- `createPkcePair(): { verifier: string; challenge: string }`, `challengeFor(verifier: string): string`
-- `traktAuthorizeUrl(redirectUri, state, challenge): string`
-- `exchangeTraktCode(code, verifier, redirectUri): Promise<TraktTokens>`, `refreshTraktToken(refreshToken, redirectUri)`, `revokeTraktToken(token)`
-- `getTraktUsername(accessToken): Promise<string>`, `getTraktWatchlistTmdbIds(accessToken): Promise<number[]>`
-- `getUserSources(userId): Promise<LinkedSource[]>`, `getSourcesForUsers(userIds)`, `upsertSource(...)`, `deleteSource(userId, type)`, `getValidTraktToken(userId, redirectUri): Promise<string>`
-- `LinkedSource = { userId: string; sourceType: "trakt" | "letterboxd"; username: string }`
+- `formatRuntime(minutes: number | null | undefined): string | null` (`170` → `"2h 50m"`, `45` → `"45m"`, `0`/null → `null`)
+- `linkedListLabel(sources: { sourceType: "trakt" | "letterboxd" }[]): string` (`[]` → `"no list"`, both → `"Trakt + Letterboxd"`, Trakt first)
+- `swipeDecision(offsetX: number, velocityX: number, width: number): "left" | "right" | null` (|offset| ≥ 30% of width, or |velocity| ≥ 500 px/s in the offset's direction with |offset| ≥ 40px)
+- Components: `Logo`, `Sticker`, `VhsCase`, `TapeSpine`, `Shelf`, `Paper`, `Receipt` (presentational)
 
-- [x] Test `challengeFor` against RFC 7636 vector (`dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk` → `E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM`). Fail → implement → pass.
-- [x] Implement the rest. Commit.
+- [ ] Write tests for the three helpers with the values above; run → fail (module missing).
+- [ ] Implement; run → pass.
+- [ ] Build the components to the mockups. Commit.
 
-### Task 4: Trakt connect routes
+### Task 3: Header and app shell
 
-**Files:** Create `app/api/connect/trakt/route.ts`, `app/api/connect/trakt/callback/route.ts`.
+**Files:** `components/header.tsx`, `app/sessions/layout.tsx` (new), `app/(marketing)/layout.tsx`, `app/settings/layout.tsx`, `app/(auth)/layout.tsx`.
 
-- [x] Start: require user, set httpOnly `trakt_pkce` and `trakt_state` cookies (10 min), redirect to authorize URL.
-- [x] Callback: verify state, exchange code, fetch username, upsert, clear cookies, redirect `/settings?linked=trakt`; on error redirect `/settings?error=<code>`. Commit.
+- [ ] Header: `Logo` (→ `/sessions` signed in, `/` signed out); desktop inline links Sessions / Profile / Sign out (signed in) or Log in / Sign up; phones get a menu button opening the same links on paper. Prop `compact` for the swipe screen.
+- [ ] `app/sessions/layout.tsx` renders the header around session screens; session page uses a `100dvh`-aware layout.
+- [ ] Auth layout: header + centred content. Commit.
 
-### Task 5: Letterboxd fetcher
+### Task 4: Front page
 
-**Files:** Create `lib/watchlists/letterboxd.ts`.
+**Files:** `components/landing/hero.tsx` (rewrite), `components/landing/watchlist-steps.tsx` (new), `app/(marketing)/page.tsx`; delete `components/landing/features.tsx` and unused `components/magicui/*`.
 
-**Produces:** `letterboxdEnabled(): boolean`, `checkLetterboxdUser(username): Promise<"ok" | "not_found" | "private_or_empty" | "blocked">`, `getLetterboxdWatchlistTmdbIds(username, deadline: number): Promise<number[]>`
+- [ ] Hero with spec copy, Start a session (→ `/sessions/new` signed in, `/signup` signed out), shelf of 3 spines + sticker; keep the `clicked_get_started` capture.
+- [ ] "New: watchlists" paper panel with the three steps. Commit.
 
-- [x] Page through `/<user>/watchlist/page/<n>/` until no slugs; resolve slugs via `letterboxd_films` cache, fetch misses 5 at a time, store results (including null). Commit.
+### Task 5: Sessions, new, join
 
-### Task 6: Settings page and actions
+**Files:** `app/sessions/page.tsx`, `app/sessions/new/page.tsx`, `app/sessions/join/page.tsx`, `actions/db/movies-actions.ts`.
 
-**Files:** Create `actions/db/watchlist-actions.ts`, `app/settings/page.tsx`, `app/settings/_components/watchlist-sources.tsx`. Modify `components/header.tsx`.
+**Produces:** `getRecentMatches(limit = 8): Promise<ActionState<{ sessionId: string; title: string }[]>>` (completed sessions with a matched movie, newest first; titles via `MovieService.getEnrichedMovie`; skip ones TMDb can't load).
 
-**Produces:** `getMyWatchlistSources()`, `saveLetterboxdUsername(username)`, `removeWatchlistSource(type)`, `getSessionWatchlistOptions(sessionId): ActionState<WatchlistOption[]>` where `WatchlistOption = { userId; name; sources: LinkedSource[] }` (names from `neon_auth."user"`, email prefix fallback).
+- [ ] Sessions: headline, New session case (sticker "New"), Join with a code case, active sessions as cases ("Session abcd1234 · N people"), "Recent matches" shelf linking to `/sessions/[id]/match` (hidden when empty), watchlist link.
+- [ ] New and join: paper panels, square inputs, same copy/behaviour. Commit.
 
-- [x] Settings card: Trakt connect/disconnect, Letterboxd username save/remove with the public-watchlist note, error/success banners from query params, Trakt notice. Header dropdown gets "Profile". Commit.
+### Task 6: Lobby
 
-### Task 7: Pool building
+**Files:** `app/sessions/[sessionId]/page.tsx`, `swipe-interface.tsx` (waiting branch), `session-wrapper.tsx`.
 
-**Files:** Create `lib/watchlists/build.ts`. Modify `actions/db/movies-actions.ts`.
+- [ ] Page loads people via `getSessionWatchlistOptions(sessionId)` and passes `people` down (the existing 3s poll's `router.refresh` keeps it fresh).
+- [ ] Waiting screen: heading ("Waiting for everyone" host / "Waiting for the host" others), dashed rental card with code + copy/share, "At the counter · N" list via `linkedListLabel`, host buttons Choose Movies (paper, existing dialog) and Start (yellow) pinned bottom with safe-area padding, Cancel session as a small link. Commit.
 
-**Produces:** `buildPoolFromWatchlists(sources: {userId; sourceType}[], redirectUri): Promise<{ movieIds: number[]; failed: { userId; sourceType; name? }[] }>`
+### Task 7: Swiping + drag
 
-- [x] Fetch all selected sources in parallel with a 20s deadline each, union via `buildWatchlistPool(…, 50)`.
-- [x] `updateSessionPreferences` branches on `mode === "watchlists"`: error (nothing saved) if pool empty; returns `failed` in `data`. Commit.
+**Files:** `swipe-interface.tsx` (swiping branch), `actions/db/movies-actions.ts` (narrow `swipeMovie` param to `"left" | "right"`).
 
-### Task 8: Lobby and form UI
+- [ ] Remove super: up button, ArrowUp, hint text; types `"left" | "right"`; match query unchanged.
+- [ ] Layout: compact header, status line (`N swiping`, `i / total`, criteria + delete as small controls), poster in clamshell sleeve with rating sticker, year · first genre, 2-line overview, Pass / Rent it pinned bottom. No-poster fallback: title on tape black.
+- [ ] Drag: `drag="x"`, `useMotionValue` x → rotate and stamp opacities; `onDragEnd` uses `swipeDecision`, springs back otherwise; disabled while a swipe is pending; `touch-action: pan-y`.
+- [ ] One swipe per card under double taps and drag-during-pending. Commit.
 
-**Files:** Modify `components/movie-preferences-form.tsx`, `app/sessions/[sessionId]/_components/criteria-dialog.tsx`, `swipe-interface.tsx`, `app/sessions/new/page.tsx`.
+### Task 8: Match receipt
 
-- [x] Form: optional `watchlistOptions` prop; when given, a "Genres & years | Watchlists" toggle; watchlist mode lists people with a checkbox per source (pre-ticked), greyed "No watchlist linked".
-- [x] Dialog loads options on open; toasts failed sources by name. Optional `trigger` label.
-- [x] Waiting screen: host-only "Choose movies" dialog next to Start Session.
-- [x] New-session page hint. Commit.
+**Files:** `app/sessions/[sessionId]/match/page.tsx`.
 
-### Task 9: Privacy page, Trakt notice, docs
+- [ ] Heading "Everyone picked it", poster (beside receipt on ≥ md), `Receipt` with PICKFLICK VIDEO, session code + date, title (red), genre · `formatRuntime`, TMDb rating, Renters (userIds length), Swipes (count of `swipes` rows for the session). Watch trailer (hidden if none) + Start a new session. Commit.
 
-- [x] `app/(marketing)/privacy/page.tsx` (what we store, Trakt tokens, deletion on disconnect) with the Trakt notice; README section; CLAUDE.md env list. Commit.
+### Task 9: Profile, auth, privacy, dialogs
 
-### Task 10: Verify and ship
+**Files:** `app/settings/page.tsx`, `app/settings/_components/watchlist-sources.tsx`, `app/(auth)/login/page.tsx`, `app/(auth)/signup/page.tsx`, `app/(marketing)/privacy/page.tsx`, `components/ui/*` as needed.
 
-- [x] `npm run type-check`, `npm run lint`, `npm run test:unit`, `npm run build`.
-- [x] Manual run in the browser: settings, Letterboxd link, lobby picker, pool build.
-- [ ] Push branch. Ask Brian before merging to production.
-- [ ] After merge: submit Trakt Production access request.
+- [ ] Profile as membership card: email, "Member since" from `user.createdAt` when present, Trakt and Letterboxd stamp rows with existing controls and messages, Trakt notice + Privacy.
+- [ ] Login/signup on a paper "Membership" card; same fields and Google button.
+- [ ] Privacy on a paper panel. Dialogs/toasts/inputs: square, paper, offset shadow. Commit.
+
+### Task 10: Docs, verify, review, ship
+
+- [ ] README/CLAUDE.md: remove super like / ↑ docs; one line on the look.
+- [ ] `npm run type-check`, `npm run lint`, `npm run test:unit`, `npm run build`.
+- [ ] Phone-size pass (Playwright iPhone viewport, touch) on every screen: front page, login, signup, sessions, new, join, lobby (host + guest, 2 test accounts), swiping incl. drag, match, profile, privacy; desktop spot check. Delete test accounts and sessions after.
+- [ ] Final review subagent; fix pass.
+- [ ] Ask Brian before pushing `main` (deploys production).
 
 ## Review
 
-- Built as planned: Trakt (PKCE) and Letterboxd linking on `/settings`, a host-only
-  "Choose Movies" dialog on the lobby waiting screen, watchlist mode in Change Criteria,
-  live fetching with one failed list never blocking the rest, `/privacy` with the Trakt notice.
-- Letterboxd works from Vercel (checked on a preview deployment, Task 0), so it ships enabled.
-  `LETTERBOXD_ENABLED=false` hides it if that changes.
-- Fixed two existing bugs found while testing: toasts never showed anywhere in the app
-  (Toaster listened to a second copy of the toast store), and the participant-name query.
-- Final review: no security or authorization issues. Fixed three Letterboxd issues it found
-  (TV ids, progress lost on a 429 or stalled request, transient errors cached forever).
-- Checks: type-check, lint, 26 unit tests, production build, and a manual run in Chrome
-  (profile page, three Letterboxd username cases, lobby pool build, failure toast).
-- Not verified end-to-end: Trakt sign-in. Trakt asked for profile setup (birthday) on the
-  owner account before it would authorize.
-
+_(filled in at the end)_
