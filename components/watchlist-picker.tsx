@@ -31,14 +31,12 @@ export function WatchlistPicker({
             className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3"
           >
             <span
-              className={
-                person.sources.length === 0 ? "text-muted-foreground" : ""
-              }
+              className={person.sources.length === 0 ? "text-neutral-600" : ""}
             >
               {person.name}
             </span>
             {person.sources.length === 0 ? (
-              <span className="text-muted-foreground text-sm">
+              <span className="text-sm text-neutral-600">
                 No watchlist linked
               </span>
             ) : (
@@ -66,7 +64,7 @@ export function WatchlistPicker({
           </li>
         ))}
       </ul>
-      <p className="text-muted-foreground text-xs">
+      <p className="text-xs text-neutral-600">
         The pool mixes every movie on the lists you tick. People link their
         lists on their{" "}
         <Link href="/settings" className="underline underline-offset-2">
