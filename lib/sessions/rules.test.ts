@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import {
+  acceptsSwipes,
   everyoneLiked,
   isSessionMember,
   parseSwipeDirection,
@@ -83,4 +84,13 @@ test("the recent matches limit is clamped to 1..20", () => {
   assert.equal(recentMatchesLimit(3.7), 3)
   assert.equal(recentMatchesLimit(Number.NaN), 8)
   assert.equal(recentMatchesLimit(Infinity), 20)
+})
+
+test("swipes are only taken while the session is in its swiping phase", () => {
+  assert.equal(acceptsSwipes("started"), true)
+  // Lobby: nobody has the cards yet
+  assert.equal(acceptsSwipes("active"), false)
+  // Matched: the movie is picked, late swipes must not pick another
+  assert.equal(acceptsSwipes("completed"), false)
+  assert.equal(acceptsSwipes("expired"), false)
 })

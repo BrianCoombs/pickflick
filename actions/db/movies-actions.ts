@@ -12,6 +12,7 @@ import type { WatchlistSourceRef } from "@/lib/watchlists/combine"
 import { getRequestOrigin } from "@/lib/watchlists/origin"
 import { traktRedirectUri } from "@/lib/watchlists/redirect"
 import {
+  acceptsSwipes,
   everyoneLiked,
   isSessionMember,
   parseSwipeDirection,
@@ -215,6 +216,20 @@ export async function swipeMovie(
       return { isSuccess: false, message: "You are not part of this session" }
     }
 
+    // Someone else's swipe already made the match: send this person to it
+    // instead of recording a swipe that could pick a second movie
+    if (session.status === "completed" && session.matchedMovieId) {
+      return {
+        isSuccess: true,
+        message: "Already matched",
+        data: { matched: true, movieId: session.matchedMovieId }
+      }
+    }
+
+    if (!acceptsSwipes(session.status)) {
+      return { isSuccess: false, message: "This session isn't taking swipes" }
+    }
+
     // Insert swipe
     await db
       .insert(swipes)
@@ -265,27 +280,31 @@ async function checkForMatch(
     .from(swipes)
     .where(and(eq(swipes.sessionId, session.id), eq(swipes.movieId, movieId)))
 
-  // Check if every member has liked it
-  if (everyoneLiked(session.userIds, movieSwipes)) {
-    // Update session with matched movie
-    await db
-      .update(movieSessions)
-      .set({
-        matchedMovieId: movieId,
-        status: "completed"
-      })
-      .where(eq(movieSessions.id, session.id))
+  if (!everyoneLiked(session.userIds, movieSwipes)) return false
 
-    // Record match in history
+  // Only the first match counts. The status condition makes this atomic:
+  // if two last swipes land together, Postgres lets one update win and the
+  // other sees status "completed" and updates nothing.
+  const won = await db
+    .update(movieSessions)
+    .set({
+      matchedMovieId: movieId,
+      status: "completed"
+    })
+    .where(
+      and(eq(movieSessions.id, session.id), eq(movieSessions.status, "started"))
+    )
+    .returning({ id: movieSessions.id })
+
+  if (won.length > 0) {
     await db.insert(matchHistory).values({
       sessionId: session.id,
       movieId
     })
-
-    return true
   }
 
-  return false
+  // Either way the session has a match now, so this swiper goes to it
+  return true
 }
 
 export async function getFriends(): Promise<ActionState<any>> {

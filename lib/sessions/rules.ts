@@ -9,6 +9,12 @@ export function isSessionMember(userIds: string[], userId: string): boolean {
   return userIds.includes(userId)
 }
 
+// Statuses: "active" is the lobby, "started" is swiping, "completed" has a
+// match. Only "started" takes swipes, so a late swipe can't pick a second movie.
+export function acceptsSwipes(status: string): boolean {
+  return status === "started"
+}
+
 // Old sessions stored "super" swipes; they still count as likes
 function isLike(direction: string): boolean {
   return direction === "right" || direction === "super"

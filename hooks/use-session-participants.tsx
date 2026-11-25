@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 
 interface UseSessionParticipantsProps {
@@ -14,6 +14,8 @@ export function useSessionParticipants({ sessionId, initialCount, initialStarted
   const [sessionStarted, setSessionStarted] = useState(initialStarted)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  // Set once we've sent this person to the match page, so the poll stops acting
+  const leavingRef = useRef(false)
 
   const fetchParticipantCount = useCallback(async () => {
     try {
@@ -25,7 +27,16 @@ export function useSessionParticipants({ sessionId, initialCount, initialStarted
       }
 
       const data = await response.json()
-      
+      if (leavingRef.current) return
+
+      // Someone's swipe made the match: go straight to it. Without this the
+      // status change reads as "not started" and flashes the lobby first.
+      if (data.status === "completed") {
+        leavingRef.current = true
+        router.replace(`/sessions/${sessionId}/match`)
+        return
+      }
+
       if (data.count !== participantCount || data.sessionStarted !== sessionStarted) {
         setParticipantCount(data.count)
         setSessionStarted(data.sessionStarted)

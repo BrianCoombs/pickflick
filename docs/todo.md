@@ -1,25 +1,16 @@
-# Review follow-ups for the video store redesign
+# Stop swiping once the session has a match
 
-The previous plan (video store redesign) is in git history.
+The previous plan (review follow-ups for the video store redesign) is in git history.
 
 Pure logic gets a failing unit test first (`npm run test:unit`).
 
-- [x] 1. swipeMovie: only session members can swipe; reject any direction but "left"/"right"; match needs a like from every current member, and old "super" rows still count as likes (lib/sessions/rules.ts)
-- [x] 2. getRecentMatches: clamp limit to 1..20, order by match_history.matchedAt
-- [x] 3. Session page: skip the watchlist lookup once started; empty people list if it throws
-- [x] 4. Lobby: "N people" when the list is empty; Start shows "Starting..." until the screen flips
-- [x] 5. Swipe screen: poster case stays 2:3 (container query units); reset x before paint on the next card; break-words on the no-poster title; onError falls back to the title
-- [x] 6. Contrast: darker red (`store.red-ink` #b8001f) for small red text on paper and red fills behind small text; criteria "Loading..." in neutral-600
-- [x] 7. /sessions subtitle says active sessions are waiting in the lobby
-- [x] 8. tailwind darkMode "class"; drop the dark: class in alert.tsx
+- [x] 1. `acceptsSwipes(status)` in `lib/sessions/rules.ts`: only "started" takes swipes (test first)
+- [x] 2. `swipeMovie`: a swipe on a completed session returns `matched: true` without recording anything; other non-started sessions are refused
+- [x] 3. `checkForMatch`: mark the session completed only `WHERE status = 'started'`, and write `match_history` only for the update that won, so the first match is the only one
+- [x] 4. Participants poll: on status "completed", go straight to `/sessions/:id/match` (no lobby flash on the way)
 
 ## Review
 
-- `lib/sessions/rules.ts` holds the swipe rules (direction check, membership, "everyone liked", recent-matches limit) with tests in `rules.test.ts`. `swipeMovie` loads the session first and refuses non-members and anything but left/right. `checkForMatch` now needs a like from each current member, so swipes from someone outside the session can't fill a member's place; `super` still counts as a like.
-- `getRecentMatches` reads `match_history` joined to the session and orders by `matched_at`.
-- Session page skips the watchlist lookup once started and falls back to `[]` if it throws.
-- Lobby shows "N people" when there's no list; Start stays disabled with "Starting..." until the poll swaps screens (re-enabled if starting fails).
-- Swipe poster: the poster area is a size container and the case is `width: min(100cqw, 100cqh * 2/3)` with `aspect-ratio: 2/3`, checked in headless Chrome at 360×700, 360×300, 700×300 and 320×1000 (all exactly 0.6667). `x` resets in a layout effect on `currentIndex`. Failed poster loads show the title fallback, which now wraps.
-- New colour `store.red-ink` (#b8001f, ~6.1:1 on paper). Used for small red text on paper (session code label, auth links, Privacy link, Select some/Clear all, match receipt title), the destructive toast and destructive button fills, and `--destructive` (error text on paper cards). Brand red stays for headings, shadows and the RENT IT stamp border.
-- Tailwind `darkMode: "class"`; no `prefers-color-scheme` rules in the built CSS.
-- Not run against real data (no DB or TMDb keys in this session).
+- Before: the match set `status = "completed"`, but `swipeMovie` never checked status. Everyone else found out from the 3-second poll, which read "completed" as "not started", briefly showed the lobby, refreshed, and only then redirected. Swipes in that gap were still recorded and could pick a second movie, overwriting `matched_movie_id` and adding another history row. Two final swipes at the same moment could do the same.
+- After: late swipes are not recorded and send the swiper to the match page. The completing update is conditional, so Postgres lets one of two simultaneous matches win; the loser still goes to the match page and sees the winner. The poll redirects on "completed" directly.
+- Checked: unit tests (47 pass), `tsc --noEmit`, eslint. Not run end to end against a live session; this branch isn't merged or deployed.
