@@ -1,16 +1,86 @@
-# Stop swiping once the session has a match
+# Swipe upgrades: TV shows, filters, match modes, resume
 
-The previous plan (review follow-ups for the video store redesign) is in git history.
+The previous plan (stop swiping once the session has a match) is in git history.
+
+Detailed plans, one per area, in `docs/superpowers/plans/`:
+`2026-11-25-tv-shows.md`, `2026-11-25-pool-filters.md`, `2026-11-25-session-settings.md`, `2026-11-25-swipe-card.md`.
 
 Pure logic gets a failing unit test first (`npm run test:unit`).
+Work happens on branch `feat/swipe-upgrades`. Nothing merges to `main` or touches the production database without Brian's go-ahead.
 
-- [x] 1. `acceptsSwipes(status)` in `lib/sessions/rules.ts`: only "started" takes swipes (test first)
-- [x] 2. `swipeMovie`: a swipe on a completed session returns `matched: true` without recording anything; other non-started sessions are refused
-- [x] 3. `checkForMatch`: mark the session completed only `WHERE status = 'started'`, and write `match_history` only for the update that won, so the first match is the only one
-- [x] 4. Participants poll: on status "completed", go straight to `/sessions/:id/match` (no lobby flash on the way)
+## Decisions
+
+- **Session settings live in columns, not in the preferences JSON** (one migration, `0002`):
+  - `media_type` is `movie` or `tv`.
+  - `match_mode` is `first` or `all`.
+  - `pool_version` is a number that goes up each time the pool changes.
+  - `match_history` gets a unique key on session + movie.
+  - Every column has a default, so existing sessions keep working unchanged.
+- **One title type for movies and shows.** Everything on screen reads a single `Title` type that covers both. The card's length line shows "1h 52m" for movies and "5 seasons · 62 episodes" for TV.
+- **Genres are any-of.** The pool takes movies from any chosen genre, mixed evenly across them, and is never padded with movies outside the filters.
+- **Rating:** Any, 6+ (the default), 7+ or 8+. A minimum vote count is applied behind the scenes.
+- **Where to watch:** US subscription streaming only:
+  - Netflix, Prime Video, Disney+, HBO Max, Hulu, Apple TV, Peacock, Paramount+.
+  - Hidden in watchlist mode.
+- **When does it end?** The host chooses at creation:
+  - "First tape everyone rents" (the default, today's behaviour).
+  - "Swipe them all, then see every match". The results page lists every movie everyone liked once everyone has finished the pool. In this mode the host can also end early.
+- **Add 50 more:**
+  - Appears when everyone has finished the pool and nobody agreed on anything, in either mode.
+  - Any member can press it.
+  - Only one press counts.
+  - The pool can grow to 500 at most.
+- **Read-only "Rental terms" panel.** Lists the session's settings, shown to everyone in the lobby and from the swipe screen.
+- **Progress comes from saved swipes.** Refreshing or rejoining puts you on your first unswiped card, and this still works after the pool grows.
+
+## Fixes found while planning
+
+- Rejoining a started session by its code is refused today.
+- Any member can change the criteria, which deletes everyone's swipes. Only the host will be able to.
+- A swipe isn't checked against the session's pool.
+- Years show one too low in US time zones (`new Date("2000-01-01")`).
+- Genres overlap on phones: wrapped labels use `leading-none`, and one-word labels overflow fixed columns. Chips replace them.
+- Multiple genres are joined with `,`, which TMDb treats as "has all of them", instead of `|`, "any of them".
+- A short pool gets topped up with popular movies that ignore the filters.
+
+## Steps
+
+### Phase 1: foundation (blocks everything else)
+- [ ] 1. `lib/titles/*`: Title type, normalizers, `yearOf`, `titleLengthLabel`, `formatSeasonsEpisodes`, TV genres, copy, with tests
+- [ ] 2. Schema columns and the `0002` migration file (generated, not applied)
+- [ ] 3. `lib/sessions/preferences.ts` (`normalizePreferences`, `describePreferences`), provider constants, `buildDiscoverParams`, `buildBalancedPool`, with tests
+- [ ] 4. `lib/sessions/progress.ts` (`nextCard`, `memberProgress`, `everyoneDone`, `agreedTitles`, `nextStep`, `canAddMore`, `appendBatch`) and `joinDecision`, with tests
+
+### Phase 2: server
+- [ ] 5. `tmdb.getTitle` / `discover`, `getEnrichedTitle`, `getTitlePool({ mediaType, prefs, size, exclude })`, watchlist pools with `mediaType` and `exclude`, Trakt shows
+- [ ] 6. Actions:
+  - `createMovieSession` takes the media type and match mode.
+  - `updateSessionPreferences` is host-only and bumps the pool version.
+  - `swipeMovie` checks the pool and handles all mode.
+  - New `settleSession`, `addMoreMovies` and `endSessionNow`.
+  - `joinMovieSession` lets members rejoin.
+- [ ] 7. The participants poll returns `poolVersion` and progress; the hook refreshes when it changes
+
+### Phase 3: screens (parallel, separate files)
+- [ ] 8. Swipe card: `Title`, length line, "Back of the box" sheet for the full description, resume from saved swipes, remount on pool change
+- [ ] 9. New session page and filter form:
+  - Movies / TV toggle and the "When do we stop?" choice.
+  - Genre, provider and rating chips.
+  - "Only N match" message.
+- [ ] 10. Waiting counter (replaces "Out of movies"), Add 50 more, host's End now, all-matches results page, Rental terms panel and settings sheet
+
+### Phase 4: check
+- [ ] 11. Unit tests, `tsc`, lint, and a code review of the whole branch
+- [ ] 12. Run locally at phone size against a dev database branch (not production):
+  - first mode is unchanged
+  - all mode ends with a list of matches
+  - zero matches, then add more
+  - refresh and rejoin resume
+  - a whole TV session
+
+### Ship (needs Brian)
+- [ ] 13. Apply the `0002` migration to production, then merge and deploy
 
 ## Review
 
-- Before: the match set `status = "completed"`, but `swipeMovie` never checked status. Everyone else found out from the 3-second poll, which read "completed" as "not started", briefly showed the lobby, refreshed, and only then redirected. Swipes in that gap were still recorded and could pick a second movie, overwriting `matched_movie_id` and adding another history row. Two final swipes at the same moment could do the same.
-- After: late swipes are not recorded and send the swiper to the match page. The completing update is conditional, so Postgres lets one of two simultaneous matches win; the loser still goes to the match page and sees the winner. The poll redirects on "completed" directly.
-- Checked: unit tests (47 pass), `tsc --noEmit`, eslint. Not run end to end against a live session; this branch isn't merged or deployed.
+(Filled in after the work.)
