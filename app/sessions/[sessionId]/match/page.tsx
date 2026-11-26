@@ -1,19 +1,57 @@
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
-import { count, eq } from "drizzle-orm"
+import { asc, count, eq } from "drizzle-orm"
 import { db } from "@/db/db"
 import { matchHistory, movieSessions, swipes } from "@/db/schema"
 import { getAuthenticatedUser } from "@/lib/auth/server"
-import { MovieService } from "@/lib/api/movie-service"
+import { getEnrichedTitle } from "@/lib/api/movie-service"
 import { TMDbAPI } from "@/lib/api/tmdb"
-import { formatRuntime } from "@/lib/store/format"
+import { mediaCopy } from "@/lib/titles/copy"
+import { titleLengthLabel } from "@/lib/titles/format"
+import { parseMediaType, type Title } from "@/lib/titles/title"
 import { Button } from "@/components/ui/button"
+import { Paper } from "@/components/store/paper"
 import { Receipt, ReceiptLine, ReceiptRule } from "@/components/store/receipt"
 
 interface MatchPageProps {
   params: Promise<{
     sessionId: string
   }>
+}
+
+const formatDate = (date: Date) =>
+  date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  })
+
+// Store name, session code and date, at the top of both receipts
+function MatchReceiptHeader({
+  sessionId,
+  date
+}: {
+  sessionId: string
+  date: Date
+}) {
+  return (
+    <>
+      <div className="font-display text-store-navy text-center text-sm">
+        PICKFLICK VIDEO
+      </div>
+      <div className="text-center">
+        Session {sessionId.slice(0, 8)} · {formatDate(date)}
+      </div>
+    </>
+  )
+}
+
+function NewSessionButton() {
+  return (
+    <Button asChild variant="secondary" size="lg">
+      <Link href="/sessions/new">Start a new session</Link>
+    </Button>
+  )
 }
 
 export default async function MatchPage({ params }: MatchPageProps) {
@@ -31,7 +69,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
     .where(eq(movieSessions.id, sessionId))
     .limit(1)
 
-  if (!session || !session.matchedMovieId) {
+  if (!session) {
     notFound()
   }
 
@@ -40,30 +78,86 @@ export default async function MatchPage({ params }: MatchPageProps) {
     redirect("/sessions")
   }
 
-  const [movie, [swipeCount], [match]] = await Promise.all([
-    new MovieService().getEnrichedMovie(parseInt(session.matchedMovieId)),
+  const mediaType = parseMediaType(session.mediaType)
+
+  const [[swipeCount], matches] = await Promise.all([
     db
       .select({ value: count() })
       .from(swipes)
       .where(eq(swipes.sessionId, sessionId)),
     db
-      .select({ matchedAt: matchHistory.matchedAt })
+      .select({
+        movieId: matchHistory.movieId,
+        matchedAt: matchHistory.matchedAt
+      })
       .from(matchHistory)
       .where(eq(matchHistory.sessionId, sessionId))
-      .limit(1)
+      .orderBy(asc(matchHistory.matchedAt))
   ])
+  const swipeTotal = swipeCount?.value ?? 0
+  const date = matches[0]?.matchedAt ?? session.createdAt
 
-  const posterUrl = TMDbAPI.getPosterUrl(movie.poster_path, "w500")
-  const releaseYear = movie.release_date
-    ? new Date(movie.release_date).getFullYear()
-    : null
-  const details = [movie.genres?.[0]?.name, formatRuntime(movie.runtime)]
+  // First mode: one title ended the session
+  if (session.matchedMovieId) {
+    return (
+      <FirstMatch
+        sessionId={sessionId}
+        title={await getEnrichedTitle(
+          mediaType,
+          parseInt(session.matchedMovieId)
+        )}
+        date={date}
+        renters={session.userIds.length}
+        swipeTotal={swipeTotal}
+      />
+    )
+  }
+
+  // Still swiping: back to the session
+  if (session.status !== "completed") {
+    redirect(`/sessions/${sessionId}`)
+  }
+
+  // Completed without a single match: all mode (match_mode can't change once
+  // completed). Every title everyone rented, possibly none. A title TMDb can't load is left
+  // off rather than breaking the receipt.
+  const loaded = await Promise.allSettled(
+    matches.map(m => getEnrichedTitle(mediaType, Number(m.movieId)))
+  )
+  const titles = loaded
+    .flatMap(r => (r.status === "fulfilled" ? [r.value] : []))
+    .sort((a, b) => b.rating - a.rating)
+
+  return (
+    <AllMatches
+      sessionId={sessionId}
+      titles={titles}
+      agreedCount={matches.length}
+      date={date}
+      renters={session.userIds.length}
+      swipeTotal={swipeTotal}
+      plural={mediaCopy(mediaType).plural}
+    />
+  )
+}
+
+function FirstMatch({
+  sessionId,
+  title,
+  date,
+  renters,
+  swipeTotal
+}: {
+  sessionId: string
+  title: Title
+  date: Date
+  renters: number
+  swipeTotal: number
+}) {
+  const posterUrl = TMDbAPI.getPosterUrl(title.posterPath, "w500")
+  const details = [title.genres[0]?.name, titleLengthLabel(title)]
     .filter(Boolean)
     .join(" · ")
-  const date = (match?.matchedAt ?? session.createdAt).toLocaleDateString(
-    "en-US",
-    { month: "short", day: "numeric", year: "numeric" }
-  )
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-12 pt-4">
@@ -79,7 +173,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={posterUrl}
-              alt={movie.title}
+              alt={title.name}
               className="aspect-[2/3] w-full object-cover"
             />
           </div>
@@ -87,39 +181,149 @@ export default async function MatchPage({ params }: MatchPageProps) {
 
         <div>
           <Receipt>
-            <div className="font-display text-store-navy text-center text-sm">
-              PICKFLICK VIDEO
-            </div>
-            <div className="text-center">
-              Session {sessionId.slice(0, 8)} · {date}
-            </div>
+            <MatchReceiptHeader sessionId={sessionId} date={date} />
             <ReceiptRule />
             <div className="font-display text-store-red-ink my-1 text-base leading-tight">
-              {movie.title}
-              {releaseYear && ` (${releaseYear})`}
+              {title.name}
+              {title.year && ` (${title.year})`}
             </div>
             <ReceiptLine
-              label={details || "Movie"}
-              value={`★ ${movie.vote_average.toFixed(1)}`}
+              label={details || mediaCopy(title.mediaType).kindLabel}
+              value={`★ ${title.rating.toFixed(1)}`}
             />
             <ReceiptRule />
-            <ReceiptLine label="Renters" value={session.userIds.length} />
-            <ReceiptLine label="Swipes" value={swipeCount?.value ?? 0} />
+            <ReceiptLine label="Renters" value={renters} />
+            <ReceiptLine label="Swipes" value={swipeTotal} />
           </Receipt>
 
           <div className="mt-6 grid gap-3">
-            {movie.trailerUrl && (
+            {title.trailerUrl && (
               <Button asChild size="lg">
-                <a href={movie.trailerUrl} target="_blank" rel="noreferrer">
+                <a href={title.trailerUrl} target="_blank" rel="noreferrer">
                   Watch trailer
                 </a>
               </Button>
             )}
-            <Button asChild variant="secondary" size="lg">
-              <Link href="/sessions/new">Start a new session</Link>
-            </Button>
+            <NewSessionButton />
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function AllMatches({
+  sessionId,
+  titles,
+  agreedCount,
+  date,
+  renters,
+  swipeTotal,
+  plural
+}: {
+  sessionId: string
+  titles: Title[]
+  agreedCount: number
+  date: Date
+  renters: number
+  swipeTotal: number
+  plural: string
+}) {
+  return (
+    <div className="mx-auto w-full max-w-lg px-4 pb-12 pt-4">
+      <h1 className="store-heading mb-6 text-3xl sm:text-4xl">
+        {agreedCount > 0 ? (
+          <>
+            Everyone
+            <br />
+            picked these
+          </>
+        ) : (
+          <>
+            Nobody
+            <br />
+            agreed
+          </>
+        )}
+      </h1>
+
+      <Receipt>
+        <MatchReceiptHeader sessionId={sessionId} date={date} />
+        <ReceiptRule />
+        {titles.map(title => (
+          <ReceiptLine
+            key={title.key}
+            className="py-0.5"
+            label={
+              <span className="font-semibold">
+                {title.name}
+                {title.year && ` (${title.year})`}
+              </span>
+            }
+            value={
+              <span className="whitespace-nowrap">
+                ★ {title.rating.toFixed(1)}
+              </span>
+            }
+          />
+        ))}
+        {agreedCount === 0 && (
+          <div className="py-0.5">No {plural} everyone rented.</div>
+        )}
+        <ReceiptRule />
+        <ReceiptLine label="Agreed" value={agreedCount} />
+        <ReceiptLine label="Renters" value={renters} />
+        <ReceiptLine label="Swipes" value={swipeTotal} />
+      </Receipt>
+
+      {titles.length > 0 && (
+        <ul className="mt-6 grid gap-3">
+          {titles.map(title => {
+            const posterUrl = TMDbAPI.getPosterUrl(title.posterPath, "w200")
+            const meta = [title.year, titleLengthLabel(title)]
+              .filter(Boolean)
+              .join(" · ")
+            return (
+              <li key={title.key}>
+                <Paper className="flex gap-3 p-2">
+                  {posterUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={posterUrl}
+                      alt=""
+                      className="bg-store-tape aspect-[2/3] w-16 shrink-0 object-cover"
+                    />
+                  ) : (
+                    <div className="bg-store-tape aspect-[2/3] w-16 shrink-0" />
+                  )}
+                  <div className="flex min-w-0 flex-1 flex-col text-sm">
+                    <div className="font-display leading-tight">
+                      {title.name}
+                    </div>
+                    {meta && (
+                      <div className="text-xs text-neutral-600">{meta}</div>
+                    )}
+                    <div className="text-xs">★ {title.rating.toFixed(1)}</div>
+                    {title.trailerUrl && (
+                      <a
+                        href={title.trailerUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-store-red-ink mt-auto flex min-h-11 items-center text-xs font-semibold underline underline-offset-4"
+                      >
+                        Watch trailer
+                      </a>
+                    )}
+                  </div>
+                </Paper>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      <div className="mt-6 grid gap-3">
+        <NewSessionButton />
       </div>
     </div>
   )

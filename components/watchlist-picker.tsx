@@ -1,77 +1,89 @@
 "use client"
 
 import Link from "next/link"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 import type { WatchlistOption } from "@/actions/db/watchlist-actions"
+import { ToggleChip } from "@/components/store/toggle-chip"
+import { sourceKey } from "@/lib/sessions/settings-form"
+import { mediaCopy } from "@/lib/titles/copy"
+import { allowedSourceTypes } from "@/lib/titles/sources"
+import type { MediaType } from "@/lib/titles/title"
 
 const SOURCE_LABELS = { trakt: "Trakt", letterboxd: "Letterboxd" } as const
 
-export const sourceKey = (userId: string, sourceType: string) =>
-  `${userId}:${sourceType}`
+export { sourceKey }
 
 interface WatchlistPickerProps {
   options: WatchlistOption[]
   selected: Set<string>
   onToggle: (key: string) => void
+  mediaType: MediaType
 }
 
 export function WatchlistPicker({
   options,
   selected,
-  onToggle
+  onToggle,
+  mediaType
 }: WatchlistPickerProps) {
+  // Letterboxd only lists films, so it's hidden for TV
+  const allowed = allowedSourceTypes(mediaType)
+
   return (
-    <div className="space-y-3">
-      <Label className="text-base">Whose watchlists?</Label>
+    <section aria-labelledby="watchlists-heading" className="space-y-3">
+      <h3
+        id="watchlists-heading"
+        className="font-display text-store-navy text-sm uppercase"
+      >
+        Whose watchlists?
+      </h3>
       <ul className="space-y-2">
-        {options.map(person => (
-          <li
-            key={person.userId}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3"
-          >
-            <span
-              className={person.sources.length === 0 ? "text-neutral-600" : ""}
+        {options.map(person => {
+          const sources = person.sources.filter(s =>
+            allowed.includes(s.sourceType)
+          )
+          return (
+            <li
+              key={person.userId}
+              className="border-store-navy/30 flex flex-wrap items-center justify-between gap-2 border-2 p-2 pl-3"
             >
-              {person.name}
-            </span>
-            {person.sources.length === 0 ? (
-              <span className="text-sm text-neutral-600">
-                No watchlist linked
+              <span
+                className={
+                  sources.length === 0 ? "text-neutral-600" : "font-semibold"
+                }
+              >
+                {person.name}
               </span>
-            ) : (
-              <div className="flex gap-4">
-                {person.sources.map(source => {
-                  const key = sourceKey(person.userId, source.sourceType)
-                  return (
-                    <div key={key} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`wl-${key}`}
-                        checked={selected.has(key)}
-                        onCheckedChange={() => onToggle(key)}
-                      />
-                      <Label
-                        htmlFor={`wl-${key}`}
-                        className="cursor-pointer text-sm font-normal"
+              {sources.length === 0 ? (
+                <span className="text-sm text-neutral-600">
+                  No watchlist linked
+                </span>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {sources.map(source => {
+                    const key = sourceKey(person.userId, source.sourceType)
+                    return (
+                      <ToggleChip
+                        key={key}
+                        pressed={selected.has(key)}
+                        onPressedChange={() => onToggle(key)}
                       >
                         {SOURCE_LABELS[source.sourceType]}
-                      </Label>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </li>
-        ))}
+                      </ToggleChip>
+                    )
+                  })}
+                </div>
+              )}
+            </li>
+          )
+        })}
       </ul>
       <p className="text-xs text-neutral-600">
-        The pool mixes every movie on the lists you tick. People link their
-        lists on their{" "}
+        {mediaCopy(mediaType).pickerBlurb} People link their lists on their{" "}
         <Link href="/settings" className="underline underline-offset-2">
           profile
         </Link>
         .
       </p>
-    </div>
+    </section>
   )
 }

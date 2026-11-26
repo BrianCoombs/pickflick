@@ -1,13 +1,16 @@
 "use client"
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { animate, motion, useMotionValue, useTransform } from "framer-motion"
 import { Trash2 } from "lucide-react"
 import { swipeMovie } from "@/actions/db/movies-actions"
 import type { WatchlistOption } from "@/actions/db/watchlist-actions"
+import { AgreedSoFar } from "@/components/store/agreed-so-far"
+import { HowItWorksButton } from "@/components/store/how-it-works"
+import { ResetNotice } from "@/components/store/reset-notice"
+import { SessionTermsButton } from "@/components/store/session-terms"
 import { Sticker } from "@/components/store/sticker"
-import { Button } from "@/components/ui/button"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,52 +22,108 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetTitle
+} from "@/components/ui/sheet"
 import { toast } from "@/hooks/use-toast"
-import { TMDbAPI, type Movie } from "@/lib/api/tmdb"
+import { TMDbAPI } from "@/lib/api/tmdb"
+import type { SessionPreferences } from "@/lib/sessions/preferences"
+import {
+  nextCard,
+  type MatchMode,
+  type NextStep
+} from "@/lib/sessions/progress"
 import { swipeKeyDirection } from "@/lib/store/keys"
 import { swipeDecision } from "@/lib/store/swipe"
-import { CriteriaDialog } from "./criteria-dialog"
+import { boxBackLine, cardMetaLine, titlesForIds } from "@/lib/titles/card"
+import { mediaCopy } from "@/lib/titles/copy"
+import type { MediaType, Title } from "@/lib/titles/title"
 import { Lobby } from "./lobby"
+import { SessionSettingsDialog } from "./session-settings-dialog"
 import { useSessionControls } from "./use-session-controls"
+import { WaitingCounter } from "./waiting-counter"
 
 type Direction = "left" | "right"
 
 interface SwipeInterfaceProps {
   sessionId: string
-  movies: Movie[]
-  participantCount: number
-  sessionStarted: boolean
+  titles: Title[]
+  mediaType: MediaType
+  matchMode: MatchMode
+  poolVersion: number
+  preferences: SessionPreferences
+  poolSize: number
+  // This person's saved swipes when the page loaded (swipes.movie_id, varchar)
+  swipedIds: string[]
   isHost: boolean
   people: WatchlistOption[]
-  preferences?: any
+  // From the participants poll
+  participantCount: number
+  sessionStarted: boolean
+  progress: { userId: string; remaining: number }[]
+  nextStep: NextStep | null
+  agreedIds: string[]
+  wasReset: boolean
+  acknowledgeReset: () => void
 }
 
 export default function SwipeInterface(props: SwipeInterfaceProps) {
-  if (!props.sessionStarted) {
-    return (
-      <Lobby
-        sessionId={props.sessionId}
-        isHost={props.isHost}
-        participantCount={props.participantCount}
-        people={props.people}
-        preferences={props.preferences}
+  return (
+    <>
+      {props.sessionStarted ? (
+        // A new pool (settings changed, or more titles added) remounts the
+        // Swiper, so this visit's swipes are dropped and the server's are used
+        <Swiper key={props.poolVersion} {...props} />
+      ) : (
+        <Lobby
+          sessionId={props.sessionId}
+          isHost={props.isHost}
+          participantCount={props.participantCount}
+          people={props.people}
+          preferences={props.preferences}
+          mediaType={props.mediaType}
+          matchMode={props.matchMode}
+          poolSize={props.poolSize}
+        />
+      )}
+      <ResetNotice
+        open={props.wasReset}
+        onAcknowledge={props.acknowledgeReset}
       />
-    )
-  }
-  return <Swiper {...props} />
+    </>
+  )
 }
 
 function Swiper({
   sessionId,
-  movies,
-  participantCount,
+  titles,
+  mediaType,
+  matchMode,
+  preferences,
+  poolSize,
+  swipedIds,
   isHost,
-  preferences
+  people,
+  participantCount,
+  progress,
+  nextStep,
+  agreedIds
 }: SwipeInterfaceProps) {
   const router = useRouter()
   const { deleting, deleteSession } = useSessionControls(sessionId)
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [brokenPosterId, setBrokenPosterId] = useState<number | null>(null)
+  const copy = mediaCopy(mediaType)
+  // Swipes confirmed during this visit. The page's swipedIds can lag behind
+  // (a refresh that lands mid-swipe), so the card comes from both.
+  const [localSwiped, setLocalSwiped] = useState<Set<string>>(() => new Set())
+  const [brokenPosterKey, setBrokenPosterKey] = useState<string | null>(null)
+  // The title whose back-of-the-box sheet is open. It only counts while that
+  // title is still the current card, so any swipe closes it.
+  const [expandedKey, setExpandedKey] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
   const leavingRef = useRef(false)
@@ -76,17 +135,29 @@ function Swiper({
   const passOpacity = useTransform(x, [-110, -20], [1, 0])
   const rentOpacity = useTransform(x, [20, 110], [0, 1])
 
-  const currentMovie = movies[currentIndex]
+  // Resume at the first title this person hasn't swiped
+  const { index, position, total } = nextCard(
+    titles.map(t => t.id),
+    [...swipedIds, ...localSwiped]
+  )
+  const current: Title | null = index === -1 ? null : titles[index]
+  const sheetOpen = current !== null && expandedKey === current.key
+
+  const agreed = useMemo(
+    () => (matchMode === "all" ? titlesForIds(titles, agreedIds) : []),
+    [matchMode, titles, agreedIds]
+  )
 
   // Re-centre before the next card paints. Setting x in swipe() would move
   // the old card back to the middle for a frame before the new one mounts.
+  const currentKey = current?.key
   useLayoutEffect(() => {
     x.set(0)
-  }, [currentIndex, x])
+  }, [currentKey, x])
 
   const swipe = async (direction: Direction) => {
     // A ref, not just state, so a double tap in the same frame can't sneak in
-    if (busyRef.current || !currentMovie) return
+    if (busyRef.current || !current) return
     busyRef.current = true
     setBusy(true)
 
@@ -96,20 +167,18 @@ function Swiper({
     })
 
     try {
-      const result = await swipeMovie(
-        sessionId,
-        currentMovie.id.toString(),
-        direction
-      )
+      const result = await swipeMovie(sessionId, String(current.id), direction)
       if (!result.isSuccess) throw new Error(result.message)
 
+      // The session is over: a first-mode match, or the last swipe of an
+      // all-mode session. Otherwise all mode just moves on to the next card.
       if (result.data.matched) {
-        // Stay locked while the match page loads, so no second swipe slips in
+        // Stay locked while the results load, so no second swipe slips in
         leavingRef.current = true
         router.push(`/sessions/${sessionId}/match`)
         return
       }
-      setCurrentIndex(index => index + 1)
+      setLocalSwiped(prev => new Set(prev).add(String(current.id)))
     } catch {
       toast({
         title: "Error",
@@ -140,6 +209,7 @@ function Swiper({
           targetTag: target?.tagName ?? "",
           targetEditable: target?.isContentEditable ?? false
         },
+        // Sheets (back of the box, how it works, ...) are dialogs too
         document.querySelector("[role=dialog], [role=alertdialog]") !== null
       )
       if (direction) swipe(direction)
@@ -149,77 +219,95 @@ function Swiper({
   })
 
   const statusBar = (
-    <div className="flex items-center justify-between gap-2 px-4 pb-2 text-xs">
+    <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-4 pb-2 text-xs">
       <span className="text-store-mist whitespace-nowrap">
         {participantCount} swiping
-        {currentMovie && (
+        {current && (
           <>
             {" "}
-            · {currentIndex + 1} / {movies.length}
+            · {position} / {total}
           </>
         )}
       </span>
-      <div className="flex items-center gap-2">
-        <CriteriaDialog
-          sessionId={sessionId}
-          currentPreferences={preferences}
+      <div className="ml-auto flex items-center gap-1">
+        {matchMode === "all" && <AgreedSoFar titles={agreed} />}
+        <HowItWorksButton
+          matchMode={matchMode}
+          mediaType={mediaType}
+          poolSize={poolSize}
         />
-        {isHost && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Delete session">
-                <Trash2 className="size-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this session?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This deletes the session and everyone&apos;s swipes.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Keep it</AlertDialogCancel>
-                <AlertDialogAction onClick={deleteSession} disabled={deleting}>
-                  {deleting ? "Deleting..." : "Delete"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+        {isHost ? (
+          <>
+            <SessionSettingsDialog
+              sessionId={sessionId}
+              mediaType={mediaType}
+              matchMode={matchMode}
+              preferences={preferences}
+              variant="swiping"
+            />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Delete session">
+                  <Trash2 className="size-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this session?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This deletes the session and everyone&apos;s swipes.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Keep it</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={deleteSession}
+                    disabled={deleting}
+                  >
+                    {deleting ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        ) : (
+          <SessionTermsButton
+            mediaType={mediaType}
+            matchMode={matchMode}
+            preferences={preferences}
+            poolSize={poolSize}
+            people={people}
+          />
         )}
       </div>
     </div>
   )
 
-  if (!currentMovie) {
+  // Every card swiped (or nothing loaded): wait for the others, add more or
+  // end, depending on where everyone is
+  if (!current) {
     return (
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
         {statusBar}
-        <div className="px-4 pt-6">
-          <h1 className="store-heading mb-4 text-3xl">
-            Out of
-            <br />
-            movies
-          </h1>
-          <div className="paper p-4 text-sm">
-            {movies.length === 0
-              ? "No movies matched. Try different genres or watchlists."
-              : "You've swiped on every movie in this pool. Nobody matched yet, so try a new pool or wait for the others to finish."}
-          </div>
-        </div>
+        <WaitingCounter
+          sessionId={sessionId}
+          mediaType={mediaType}
+          matchMode={matchMode}
+          isHost={isHost}
+          people={people}
+          progress={progress}
+          nextStep={nextStep}
+          poolSize={poolSize}
+        />
       </div>
     )
   }
 
   const posterUrl =
-    brokenPosterId === currentMovie.id
+    brokenPosterKey === current.key
       ? null
-      : TMDbAPI.getPosterUrl(currentMovie.poster_path)
-  const releaseYear = currentMovie.release_date
-    ? new Date(currentMovie.release_date).getFullYear()
-    : null
-  const genre = currentMovie.genres?.[0]?.name
-  const meta = [releaseYear, genre].filter(Boolean).join(" · ")
+      : TMDbAPI.getPosterUrl(current.posterPath)
+  const meta = cardMetaLine(current)
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-60px)] w-full max-w-md flex-col overflow-hidden">
@@ -230,7 +318,7 @@ function Swiper({
           width or height runs out first */}
       <div className="flex min-h-0 flex-1 items-center justify-center px-6 [container-type:size]">
         <motion.div
-          key={currentMovie.id}
+          key={current.key}
           ref={cardRef}
           drag={busy ? false : "x"}
           dragElastic={0.9}
@@ -255,21 +343,26 @@ function Swiper({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={posterUrl}
-              alt={currentMovie.title}
+              alt={current.name}
               draggable={false}
-              onError={() => setBrokenPosterId(currentMovie.id)}
+              onError={() => setBrokenPosterKey(current.key)}
               className="size-full object-cover"
             />
           ) : (
             <div className="bg-store-tape-edge flex size-full items-end p-3">
               <span className="font-display min-w-0 break-words text-xl text-white">
-                {currentMovie.title}
+                {current.name}
               </span>
             </div>
           )}
 
+          {current.mediaType === "tv" && (
+            <Sticker className="bg-store-yellow absolute -left-2 -top-2 -rotate-6 text-sm">
+              BOX SET
+            </Sticker>
+          )}
           <Sticker className="absolute -right-2 -top-2 rotate-6 text-sm">
-            ★ {currentMovie.vote_average.toFixed(1)}
+            ★ {current.rating.toFixed(1)}
           </Sticker>
 
           {/* Stamps that fade in while dragging */}
@@ -288,12 +381,26 @@ function Swiper({
         </motion.div>
       </div>
 
+      {/* Outside the draggable case, so the link never starts a drag */}
       <div className="px-6 pt-3 text-xs leading-snug">
         <div className="font-display text-store-yellow truncate text-base">
-          {currentMovie.title}
+          {current.name}
         </div>
-        {meta && <div className="text-store-mist">{meta}</div>}
-        <p className="mt-1 line-clamp-2">{currentMovie.overview}</p>
+        {(meta || current.overview) && (
+          <div className="flex min-h-11 items-center justify-between gap-2">
+            <span className="text-store-mist min-w-0 truncate">{meta}</span>
+            {current.overview && (
+              <button
+                type="button"
+                onClick={() => setExpandedKey(current.key)}
+                className="text-store-ink focus-visible:ring-ring min-h-11 shrink-0 whitespace-nowrap font-mono underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2"
+              >
+                Back of the box ▸
+              </button>
+            )}
+          </div>
+        )}
+        <p className="line-clamp-2">{current.overview}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
@@ -309,6 +416,58 @@ function Swiper({
           Rent it
         </Button>
       </div>
+
+      <BackOfTheBox
+        title={current}
+        kind={copy.singular}
+        open={sheetOpen}
+        onOpenChange={open => setExpandedKey(open ? current.key : null)}
+      />
     </div>
+  )
+}
+
+// The full description, like reading the back of a rental case. A bottom
+// sheet, so it covers the poster and buttons instead of pushing the layout.
+function BackOfTheBox({
+  title,
+  kind,
+  open,
+  onOpenChange
+}: {
+  title: Title
+  kind: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const line = boxBackLine(title)
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="bottom"
+        className="bg-store-paper text-store-navy border-store-navy shadow-offset-black mx-auto flex max-h-[70dvh] max-w-md flex-col gap-0 rounded-none border-t-2 border-dashed p-0"
+      >
+        <div className="overflow-y-auto px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5">
+          <SheetTitle className="font-display text-store-navy pr-8 text-xl leading-tight">
+            {title.name}
+          </SheetTitle>
+          {title.tagline && (
+            <p className="font-marker text-store-red-ink mt-1 text-base">
+              {title.tagline}
+            </p>
+          )}
+          <SheetDescription className="sr-only">
+            The full description of this {kind}
+          </SheetDescription>
+          {line && <p className="mt-2 text-xs">{line}</p>}
+          <p className="mt-3 text-sm leading-relaxed">{title.overview}</p>
+          <SheetClose asChild>
+            <Button variant="default" className="mt-4 w-full">
+              Put it back
+            </Button>
+          </SheetClose>
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }

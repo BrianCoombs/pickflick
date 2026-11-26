@@ -77,13 +77,13 @@ Work happens on branch `feat/swipe-upgrades`. Nothing merges to `main` or touche
 - [x] 7. The participants poll returns `poolVersion`, `resetVersion` and progress. The hook refreshes when either changes and flags a reset for non-hosts.
 
 ### Phase 3: screens (parallel, separate files)
-- [ ] 8. Swipe card: `Title`, length line, "Back of the box" sheet for the full description, resume from saved swipes, remount on pool change
-- [ ] 9. Shared session settings form, used on the new-session page and in the host's Session settings dialog:
+- [x] 8. Swipe card: `Title`, length line, "Back of the box" sheet for the full description, resume from saved swipes, remount on pool change
+- [x] 9. Shared session settings form, used on the new-session page and in the host's Session settings dialog:
   - Movies / TV toggle and the "When do we stop?" choice.
   - A reset confirmation when saving mid-session.
   - Genre, provider and rating chips.
   - "Only N match" message.
-- [ ] 10. "How it works" in the lobby and behind a "?" on the swipe screen, the agreed-so-far chip and sheet, reset notice for participants, waiting counter (replaces "Out of movies"), Add 50 more, host's End now, all-matches results page, Rental terms panel and settings sheet
+- [x] 10. "How it works" in the lobby and behind a "?" on the swipe screen, the agreed-so-far chip and sheet, reset notice for participants, waiting counter (replaces "Out of movies"), Add 50 more, host's End now, all-matches results page, Rental terms panel and settings sheet
 
 ### Phase 4: check
 - [ ] 11. Unit tests, `tsc`, lint, and a code review of the whole branch

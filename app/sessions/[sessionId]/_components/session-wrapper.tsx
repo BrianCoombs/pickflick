@@ -1,44 +1,62 @@
 "use client"
 
-import { useSessionParticipants } from "@/hooks/use-session-participants"
-import SwipeInterface from "./swipe-interface"
-import type { Movie } from "@/lib/api/tmdb"
 import type { WatchlistOption } from "@/actions/db/watchlist-actions"
+import { useSessionParticipants } from "@/hooks/use-session-participants"
+import type { SessionPreferences } from "@/lib/sessions/preferences"
+import type { MatchMode } from "@/lib/sessions/progress"
+import type { MediaType, Title } from "@/lib/titles/title"
+import SwipeInterface from "./swipe-interface"
 
 interface SessionWrapperProps {
   sessionId: string
-  movies: Movie[]
+  titles: Title[]
+  mediaType: MediaType
+  matchMode: MatchMode
+  poolVersion: number
+  resetVersion: number
+  preferences: SessionPreferences
+  poolSize: number
+  swipedIds: string[]
   initialParticipantCount: number
   initialSessionStarted: boolean
   isHost: boolean
   people: WatchlistOption[]
-  preferences?: any
 }
 
+// The client side of the session page: polls who's in, where everyone is up
+// to and whether the host reset things, then hands it all to the screen
 export default function SessionWrapper({
-  sessionId,
-  movies,
   initialParticipantCount,
   initialSessionStarted,
-  isHost,
-  people,
-  preferences
+  ...props
 }: SessionWrapperProps) {
-  const { participantCount, sessionStarted } = useSessionParticipants({
-    sessionId,
+  const {
+    participantCount,
+    sessionStarted,
+    progress,
+    nextStep,
+    agreedIds,
+    wasReset,
+    acknowledgeReset
+  } = useSessionParticipants({
+    sessionId: props.sessionId,
     initialCount: initialParticipantCount,
-    initialStarted: initialSessionStarted
+    initialStarted: initialSessionStarted,
+    initialPoolVersion: props.poolVersion,
+    initialResetVersion: props.resetVersion,
+    isHost: props.isHost
   })
 
   return (
     <SwipeInterface
-      sessionId={sessionId}
-      movies={movies}
+      {...props}
       participantCount={participantCount}
       sessionStarted={sessionStarted}
-      isHost={isHost}
-      people={people}
-      preferences={preferences}
+      progress={progress}
+      nextStep={nextStep}
+      agreedIds={agreedIds}
+      wasReset={wasReset}
+      acknowledgeReset={acknowledgeReset}
     />
   )
 }

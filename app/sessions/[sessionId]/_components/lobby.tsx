@@ -15,8 +15,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog"
+import { HowItWorks } from "@/components/store/how-it-works"
+import { SessionTerms } from "@/components/store/session-terms"
+import type { SessionPreferences } from "@/lib/sessions/preferences"
+import type { MatchMode } from "@/lib/sessions/progress"
 import { linkedListLabel, peopleCount } from "@/lib/store/format"
-import { CriteriaDialog } from "./criteria-dialog"
+import type { MediaType } from "@/lib/titles/title"
+import { SessionSettingsDialog } from "./session-settings-dialog"
 import { useSessionControls } from "./use-session-controls"
 
 interface LobbyProps {
@@ -24,7 +29,10 @@ interface LobbyProps {
   isHost: boolean
   participantCount: number
   people: WatchlistOption[]
-  preferences?: any
+  preferences: SessionPreferences
+  mediaType: MediaType
+  matchMode: MatchMode
+  poolSize: number
 }
 
 // The waiting screen before the host presses Start
@@ -33,7 +41,10 @@ export function Lobby({
   isHost,
   participantCount,
   people,
-  preferences
+  preferences,
+  mediaType,
+  matchMode,
+  poolSize
 }: LobbyProps) {
   const {
     shortCode,
@@ -123,6 +134,22 @@ export function Lobby({
         )}
       </div>
 
+      {/* The rules and the settings, so nobody has to ask the host */}
+      <div className="mt-4 grid gap-4">
+        <HowItWorks
+          matchMode={matchMode}
+          mediaType={mediaType}
+          poolSize={poolSize}
+        />
+        <SessionTerms
+          mediaType={mediaType}
+          matchMode={matchMode}
+          preferences={preferences}
+          poolSize={poolSize}
+          people={people}
+        />
+      </div>
+
       {!isHost && (
         <p className="text-store-mist mt-4 text-sm">
           The host starts the session when everyone&apos;s in.
@@ -131,9 +158,11 @@ export function Lobby({
 
       {isHost && (
         <div className="mt-auto grid gap-3 pt-6 md:mt-4">
-          <CriteriaDialog
+          <SessionSettingsDialog
             sessionId={sessionId}
-            currentPreferences={preferences}
+            mediaType={mediaType}
+            matchMode={matchMode}
+            preferences={preferences}
             variant="lobby"
           />
           <Button size="lg" onClick={startSession} disabled={starting}>
