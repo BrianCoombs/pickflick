@@ -2,7 +2,12 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { test } from "node:test"
-import { extractTraktTmdbIds, traktHeaders, traktWatchlistPath } from "./trakt"
+import {
+  extractTraktTmdbIds,
+  getTraktWatchlistTmdbIds,
+  traktHeaders,
+  traktWatchlistPath
+} from "./trakt"
 
 process.env.TRAKT_CLIENT_ID = "test-client-id"
 
@@ -54,4 +59,73 @@ test("ignores an item whose type says the other kind", () => {
 test("copes with junk instead of a list", () => {
   assert.deepEqual(extractTraktTmdbIds(null, "movie"), [])
   assert.deepEqual(extractTraktTmdbIds([null, 3, "x"], "tv"), [])
+})
+
+// A fake Trakt: pages of watchlist items, with the pagination headers Trakt
+// sends (checked against api.trakt.tv on 2026-11-25: 100 per page by default,
+// up to 250 with ?limit=250)
+function fakeTrakt(kind: "show" | "movie", total: number) {
+  const calls: string[] = []
+  const original = globalThis.fetch
+  globalThis.fetch = (async (input: string | URL) => {
+    const url = new URL(String(input))
+    calls.push(url.pathname + url.search)
+    const limit = Number(url.searchParams.get("limit") ?? 100)
+    const page = Number(url.searchParams.get("page") ?? 1)
+    const pageCount = Math.max(1, Math.ceil(total / limit))
+    const start = (page - 1) * limit
+    const items = Array.from(
+      { length: Math.max(0, Math.min(limit, total - start)) },
+      (_, i) => ({ type: kind, [kind]: { ids: { tmdb: start + i + 1 } } })
+    )
+    return new Response(JSON.stringify(items), {
+      status: 200,
+      headers: {
+        "x-pagination-page": String(page),
+        "x-pagination-page-count": String(pageCount),
+        "x-pagination-limit": String(limit)
+      }
+    })
+  }) as typeof fetch
+  return { calls, restore: () => (globalThis.fetch = original) }
+}
+
+test("a TV session reads the shows watchlist, a movie session the movies one", async () => {
+  const tv = fakeTrakt("show", 3)
+  try {
+    assert.deepEqual(await getTraktWatchlistTmdbIds("t", "tv"), [1, 2, 3])
+    assert.ok(tv.calls.every(c => c.startsWith("/sync/watchlist/shows")))
+  } finally {
+    tv.restore()
+  }
+  const movies = fakeTrakt("movie", 2)
+  try {
+    assert.deepEqual(await getTraktWatchlistTmdbIds("t", "movie"), [1, 2])
+    assert.ok(movies.calls.every(c => c.startsWith("/sync/watchlist/movies")))
+  } finally {
+    movies.restore()
+  }
+})
+
+test("reads every page of a long watchlist, not just the first 100", async () => {
+  const fake = fakeTrakt("movie", 600)
+  try {
+    const ids = await getTraktWatchlistTmdbIds("t", "movie")
+    assert.equal(ids.length, 600)
+    assert.equal(new Set(ids).size, 600)
+    assert.equal(fake.calls.length, 3) // 250 + 250 + 100
+  } finally {
+    fake.restore()
+  }
+})
+
+test("stops at a sane number of pages for a huge watchlist", async () => {
+  const fake = fakeTrakt("show", 100_000)
+  try {
+    const ids = await getTraktWatchlistTmdbIds("t", "tv")
+    assert.ok(fake.calls.length <= 20)
+    assert.equal(ids.length, fake.calls.length * 250)
+  } finally {
+    fake.restore()
+  }
 })

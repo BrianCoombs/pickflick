@@ -159,12 +159,29 @@ export function extractTraktTmdbIds(
   })
 }
 
+// Trakt pages watchlists: 100 items by default, at most 250 per page, with the
+// page count in X-Pagination-Page-Count. Without paging, anything past the
+// first 100 was silently left out of the pool.
+const WATCHLIST_PAGE_SIZE = 250
+const MAX_WATCHLIST_PAGES = 20 // 5,000 titles is plenty for a 50-card pool
+
 export async function getTraktWatchlistTmdbIds(
   accessToken: string,
   mediaType: MediaType = "movie"
 ): Promise<number[]> {
-  const items = await request<unknown>(traktWatchlistPath(mediaType), {
-    accessToken
-  })
-  return extractTraktTmdbIds(items, mediaType)
+  const path = traktWatchlistPath(mediaType)
+  const ids: number[] = []
+  for (let page = 1; page <= MAX_WATCHLIST_PAGES; page++) {
+    const res = await fetch(
+      `${API_URL}${path}?page=${page}&limit=${WATCHLIST_PAGE_SIZE}`,
+      { headers: traktHeaders(accessToken), cache: "no-store" }
+    )
+    if (!res.ok) {
+      throw new TraktError(`Trakt ${path} failed: ${res.status}`, res.status)
+    }
+    ids.push(...extractTraktTmdbIds(await res.json(), mediaType))
+    const pageCount = Number(res.headers.get("x-pagination-page-count") ?? 1)
+    if (!Number.isFinite(pageCount) || page >= pageCount) break
+  }
+  return Array.from(new Set(ids))
 }
