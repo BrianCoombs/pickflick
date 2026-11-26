@@ -37,3 +37,12 @@ test("an empty list is not a failure", () => {
   assert.deepEqual(movieIds, [])
   assert.deepEqual(failed, [])
 })
+
+test("leaves out excluded ids", () => {
+  const { movieIds } = combineWatchlistResults(
+    [{ source: ana, ids: [10, 20, 30] }],
+    50,
+    [20]
+  )
+  assert.deepEqual([...movieIds].sort(), [10, 30])
+})

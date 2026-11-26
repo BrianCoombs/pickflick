@@ -1,7 +1,9 @@
 /*
 <ai_context>
-Builds a session's movie pool from the selected people's watchlists, fetched
-live from Trakt and Letterboxd every time.
+Builds a session's movie or TV pool from the selected people's watchlists,
+fetched live from Trakt and Letterboxd every time. Letterboxd only lists
+films, so TV pools skip it, and so does every pool when LETTERBOXD_ENABLED is
+"false".
 </ai_context>
 */
 
@@ -10,7 +12,9 @@ import {
   type WatchlistResult,
   type WatchlistSourceRef
 } from "./combine"
-import { getLetterboxdWatchlistTmdbIds } from "./letterboxd"
+import { allowedSourceTypes } from "../titles/sources"
+import type { MediaType } from "../titles/title"
+import { getLetterboxdWatchlistTmdbIds, letterboxdEnabled } from "./letterboxd"
 import { getSourcesForUsers, getValidTraktToken } from "./sources"
 import { getTraktWatchlistTmdbIds } from "./trakt"
 
@@ -26,10 +30,22 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ])
 }
 
+export interface WatchlistPoolOptions {
+  mediaType?: MediaType
+  // Ids already in the pool ("Add 50 more"); dropped before the shuffle/cap
+  exclude?: number[]
+}
+
 export async function buildPoolFromWatchlists(
-  selected: WatchlistSourceRef[],
-  redirectUri: string
+  sources: WatchlistSourceRef[],
+  redirectUri: string,
+  { mediaType = "movie", exclude = [] }: WatchlistPoolOptions = {}
 ): Promise<{ movieIds: number[]; failed: WatchlistSourceRef[] }> {
+  // LETTERBOXD_ENABLED=false keeps Letterboxd out of pools, not just the UI
+  const allowed = allowedSourceTypes(mediaType, {
+    letterboxd: letterboxdEnabled()
+  })
+  const selected = sources.filter(s => allowed.includes(s.sourceType))
   const linked = await getSourcesForUsers(selected.map(s => s.userId))
   const deadline = Date.now() + SOURCE_TIME_BUDGET_MS
 
@@ -41,7 +57,7 @@ export async function buildPoolFromWatchlists(
 
     if (source.sourceType === "trakt") {
       const token = await getValidTraktToken(source.userId, redirectUri)
-      return getTraktWatchlistTmdbIds(token)
+      return getTraktWatchlistTmdbIds(token, mediaType)
     }
     return getLetterboxdWatchlistTmdbIds(link.username, deadline)
   }
@@ -66,5 +82,5 @@ export async function buildPoolFromWatchlists(
     })
   )
 
-  return combineWatchlistResults(results, POOL_SIZE)
+  return combineWatchlistResults(results, POOL_SIZE, exclude)
 }

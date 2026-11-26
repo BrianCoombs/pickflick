@@ -1,14 +1,19 @@
 import { notFound, redirect } from "next/navigation"
-import { getAuthenticatedUser } from "@/lib/auth/server"
-import { db } from "@/db/db"
-import { movieSessions } from "@/db/schema"
-import { eq } from "drizzle-orm"
-import SessionWrapper from "./_components/session-wrapper"
-import { TMDbAPI } from "@/lib/api/tmdb"
+import { and, eq } from "drizzle-orm"
 import {
   getSessionWatchlistOptions,
   type WatchlistOption
 } from "@/actions/db/watchlist-actions"
+import { db } from "@/db/db"
+import { movieSessions, swipes } from "@/db/schema"
+import { getEnrichedTitle } from "@/lib/api/movie-service"
+import { getAuthenticatedUser } from "@/lib/auth/server"
+import { normalizePreferences } from "@/lib/sessions/preferences"
+import { parseMatchMode } from "@/lib/sessions/progress"
+import { parsePool } from "@/lib/sessions/settle"
+import { loadTitlesInOrder } from "@/lib/titles/placeholder"
+import { parseMediaType } from "@/lib/titles/title"
+import SessionWrapper from "./_components/session-wrapper"
 
 interface SessionPageProps {
   params: Promise<{
@@ -42,40 +47,55 @@ export default async function SessionPage({ params }: SessionPageProps) {
     redirect("/sessions")
   }
 
-  // Check if session has already matched
-  if (session.status === "completed" && session.matchedMovieId) {
+  // The session is over (a first-mode match, everyone finished in all mode,
+  // or the host ended it): the results page has it
+  if (session.status === "completed") {
     redirect(`/sessions/${sessionId}/match`)
   }
 
-  // Get movies from stored pool
+  // Get titles from stored pool
   if (!session.moviePool || !Array.isArray(session.moviePool)) {
     throw new Error("Session has no movie pool")
   }
-
-  // Fetch movie details for the stored IDs in order
-  const tmdb = new TMDbAPI()
-  const moviePromises = (session.moviePool as number[]).map(movieId =>
-    tmdb.getMovie(movieId).catch(() => null)
-  )
-  // People are only shown in the lobby, and a failed lookup shouldn't take
-  // the whole page down
+  const pool = parsePool(session.moviePool)
+  const mediaType = parseMediaType(session.mediaType)
   const sessionStarted = session.status === "started"
-  const [movieResults, people] = await Promise.all([
-    Promise.all(moviePromises),
-    sessionStarted ? [] : loadPeople(sessionId)
+
+  // Details for every stored id, in order, from the 24-hour title cache (8
+  // TMDb calls at a time on a miss). A title that still can't load becomes a
+  // placeholder card rather than being dropped, so the deck matches the
+  // server's pool and everyone can finish it. A failed people lookup
+  // shouldn't take the page down either.
+  const [titles, swipedRows, people] = await Promise.all([
+    loadTitlesInOrder(mediaType, pool, getEnrichedTitle, 8),
+    // Where this person is up to: the swipe card resumes from saved swipes
+    sessionStarted
+      ? db
+          .select({ movieId: swipes.movieId })
+          .from(swipes)
+          .where(
+            and(eq(swipes.sessionId, sessionId), eq(swipes.userId, userId))
+          )
+      : [],
+    loadPeople(sessionId)
   ])
-  const movies = movieResults.filter(movie => movie !== null)
 
   return (
     <div className="flex flex-1 flex-col">
       <SessionWrapper
         sessionId={sessionId}
-        movies={movies}
+        titles={titles}
+        mediaType={mediaType}
+        matchMode={parseMatchMode(session.matchMode)}
+        poolVersion={session.poolVersion}
+        resetVersion={session.resetVersion}
+        preferences={normalizePreferences(session.preferences, mediaType)}
+        poolSize={pool.length}
+        swipedIds={swipedRows.map(row => row.movieId)}
         initialParticipantCount={session.userIds.length}
         initialSessionStarted={sessionStarted}
         isHost={session.hostUserId === userId}
         people={people}
-        preferences={session.preferences}
       />
     </div>
   )

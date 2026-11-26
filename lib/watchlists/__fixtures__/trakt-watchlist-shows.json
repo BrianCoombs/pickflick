@@ -1,0 +1,56 @@
+[
+  {
+    "rank": 1,
+    "id": 101,
+    "listed_at": "2026-09-01T09:10:11.000Z",
+    "notes": null,
+    "type": "show",
+    "show": {
+      "title": "Breaking Bad",
+      "year": 2008,
+      "ids": {
+        "trakt": 1,
+        "slug": "breaking-bad",
+        "tvdb": 81189,
+        "imdb": "tt0903747",
+        "tmdb": 1396
+      }
+    }
+  },
+  {
+    "rank": 2,
+    "id": 102,
+    "listed_at": "2026-09-02T09:10:11.000Z",
+    "notes": null,
+    "type": "show",
+    "show": {
+      "title": "Game of Thrones",
+      "year": 2011,
+      "ids": {
+        "trakt": 1390,
+        "slug": "game-of-thrones",
+        "tvdb": 121361,
+        "imdb": "tt0944947",
+        "tmdb": 1399
+      }
+    }
+  },
+  {
+    "rank": 3,
+    "id": 103,
+    "listed_at": "2026-09-03T09:10:11.000Z",
+    "notes": null,
+    "type": "show",
+    "show": {
+      "title": "A show TMDb doesn't know",
+      "year": 2026,
+      "ids": {
+        "trakt": 999001,
+        "slug": "a-show-tmdb-doesnt-know",
+        "tvdb": null,
+        "imdb": null,
+        "tmdb": null
+      }
+    }
+  }
+]

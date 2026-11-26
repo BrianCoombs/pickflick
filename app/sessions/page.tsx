@@ -9,6 +9,22 @@ import { Shelf, TapeSpine } from "@/components/store/tape-spine"
 import { VhsCase } from "@/components/store/vhs-case"
 import { getAuthenticatedUser } from "@/lib/auth/server"
 import { peopleCount } from "@/lib/store/format"
+import { parseMediaType } from "@/lib/titles/title"
+import { cn } from "@/lib/utils"
+
+// Small "TV" tag for TV sessions, like a box-set label
+function TvMark({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "font-display bg-store-yellow text-store-navy px-1 text-[9px] leading-tight",
+        className
+      )}
+    >
+      TV
+    </span>
+  )
+}
 
 export default async function SessionsPage() {
   const user = await getAuthenticatedUser()
@@ -21,8 +37,13 @@ export default async function SessionsPage() {
     getActiveSessions(),
     getRecentMatches()
   ])
-  const activeSessions: { id: string; userIds: string[] }[] =
-    sessionsResult.isSuccess ? sessionsResult.data : []
+  // Lobby sessions and ones already swiping ("started")
+  const activeSessions: {
+    id: string
+    userIds: string[]
+    mediaType: string
+    status?: string
+  }[] = sessionsResult.isSuccess ? sessionsResult.data : []
   const recentMatches = matchesResult.isSuccess ? matchesResult.data : []
 
   return (
@@ -50,7 +71,17 @@ export default async function SessionsPage() {
             key={session.id}
             href={`/sessions/${session.id}`}
             title={`Session ${session.id.slice(0, 8)}`}
-            subtitle={`${peopleCount(session.userIds.length)} · waiting in the lobby`}
+            subtitle={
+              <>
+                {parseMediaType(session.mediaType) === "tv" && (
+                  <TvMark className="mr-1.5 align-middle" />
+                )}
+                {session.status === "started"
+                  ? "Swiping now"
+                  : "Waiting in the lobby"}{" "}
+                · {peopleCount(session.userIds.length)}
+              </>
+            }
           />
         ))}
       </div>
@@ -61,12 +92,20 @@ export default async function SessionsPage() {
             RECENT MATCHES
           </h2>
           <Shelf>
+            {/* All mode sessions put one spine on the shelf per agreed title */}
             {recentMatches.map(match => (
-              <TapeSpine
-                key={match.sessionId}
-                title={match.title}
-                href={`/sessions/${match.sessionId}/match`}
-              />
+              <div
+                key={`${match.sessionId}:${match.movieId}`}
+                className="relative shrink-0"
+              >
+                <TapeSpine
+                  title={match.title}
+                  href={`/sessions/${match.sessionId}/match`}
+                />
+                {match.mediaType === "tv" && (
+                  <TvMark className="pointer-events-none absolute -top-1 left-1/2 -translate-x-1/2" />
+                )}
+              </div>
             ))}
           </Shelf>
         </section>

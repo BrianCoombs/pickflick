@@ -39,3 +39,14 @@ export function recentMatchesLimit(limit: number): number {
   if (Number.isNaN(limit)) return DEFAULT_RECENT_MATCHES
   return Math.min(MAX_RECENT_MATCHES, Math.max(1, Math.floor(limit)))
 }
+
+export type JoinDecision = "join" | "rejoin" | "closed"
+
+// Members can always get back in (to the lobby, their next card, or the
+// results). Newcomers can only join from the lobby, before the cards are dealt.
+export function joinDecision(status: string, isMember: boolean): JoinDecision {
+  const open = ["active", "started", "completed"].includes(status)
+  if (!open) return "closed"
+  if (isMember) return "rejoin"
+  return status === "active" ? "join" : "closed"
+}

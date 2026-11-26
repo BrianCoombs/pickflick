@@ -5,6 +5,8 @@ Trakt's developer portal doesn't issue a client secret for this app.
 </ai_context>
 */
 
+import type { MediaType } from "../titles/title"
+
 const AUTHORIZE_URL = "https://auth.trakt.tv/oauth/authorize"
 const API_URL = "https://api.trakt.tv"
 
@@ -135,14 +137,51 @@ export async function getTraktUsername(accessToken: string): Promise<string> {
   return me.username
 }
 
+export function traktWatchlistPath(mediaType: MediaType): string {
+  return mediaType === "tv" ? "/sync/watchlist/shows" : "/sync/watchlist/movies"
+}
+
+// Watchlist items are { type: "movie", movie: {...} } or
+// { type: "show", show: {...} }. Keeps the TMDb ids of the asked-for kind and
+// drops items TMDb doesn't know (tmdb: null)
+export function extractTraktTmdbIds(
+  items: unknown,
+  mediaType: MediaType
+): number[] {
+  if (!Array.isArray(items)) return []
+  const kind = mediaType === "tv" ? "show" : "movie"
+  return items.flatMap(item => {
+    if (typeof item !== "object" || item === null) return []
+    const { type, [kind]: entry } = item as Record<string, unknown>
+    if (type !== undefined && type !== kind) return []
+    const id = (entry as { ids?: { tmdb?: unknown } } | undefined)?.ids?.tmdb
+    return typeof id === "number" && Number.isInteger(id) ? [id] : []
+  })
+}
+
+// Trakt pages watchlists: 100 items by default, at most 250 per page, with the
+// page count in X-Pagination-Page-Count. Without paging, anything past the
+// first 100 was silently left out of the pool.
+const WATCHLIST_PAGE_SIZE = 250
+const MAX_WATCHLIST_PAGES = 20 // 5,000 titles is plenty for a 50-card pool
+
 export async function getTraktWatchlistTmdbIds(
-  accessToken: string
+  accessToken: string,
+  mediaType: MediaType = "movie"
 ): Promise<number[]> {
-  const items = await request<{ movie?: { ids?: { tmdb?: number | null } } }[]>(
-    "/sync/watchlist/movies",
-    { accessToken }
-  )
-  return items
-    .map(item => item.movie?.ids?.tmdb)
-    .filter((id): id is number => typeof id === "number")
+  const path = traktWatchlistPath(mediaType)
+  const ids: number[] = []
+  for (let page = 1; page <= MAX_WATCHLIST_PAGES; page++) {
+    const res = await fetch(
+      `${API_URL}${path}?page=${page}&limit=${WATCHLIST_PAGE_SIZE}`,
+      { headers: traktHeaders(accessToken), cache: "no-store" }
+    )
+    if (!res.ok) {
+      throw new TraktError(`Trakt ${path} failed: ${res.status}`, res.status)
+    }
+    ids.push(...extractTraktTmdbIds(await res.json(), mediaType))
+    const pageCount = Number(res.headers.get("x-pagination-page-count") ?? 1)
+    if (!Number.isFinite(pageCount) || page >= pageCount) break
+  }
+  return Array.from(new Set(ids))
 }

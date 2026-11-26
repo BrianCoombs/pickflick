@@ -11,12 +11,15 @@ export type WatchlistResult =
 
 export function combineWatchlistResults(
   results: WatchlistResult[],
-  size: number
+  size: number,
+  exclude: Iterable<number> = []
 ): { movieIds: number[]; failed: WatchlistSourceRef[] } {
   return {
     movieIds: buildWatchlistPool(
       results.flatMap(r => (r.ids ? [r.ids] : [])),
-      size
+      size,
+      Math.random,
+      exclude
     ),
     failed: results.filter(r => r.error !== undefined).map(r => r.source)
   }

@@ -1,0 +1,179 @@
+{
+  "id": 1399,
+  "name": "Game of Thrones",
+  "original_name": "Game of Thrones",
+  "overview": "Seven noble families fight for control of the mythical land of Westeros. Friction between the houses leads to full-scale war. All while a very ancient evil awakens in the farthest north. Amidst the war, a neglected military order of misfits, the Night's Watch, is all that stands between the realms of men and icy horrors beyond.",
+  "poster_path": "/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg",
+  "backdrop_path": "/zZqpAXxVSBtxV9qPBcscfXBcL2w.jpg",
+  "first_air_date": "2011-04-17",
+  "genres": [
+    {
+      "id": 10765,
+      "name": "Sci-Fi & Fantasy"
+    },
+    {
+      "id": 18,
+      "name": "Drama"
+    },
+    {
+      "id": 10759,
+      "name": "Action & Adventure"
+    }
+  ],
+  "vote_average": 8.476,
+  "vote_count": 28239,
+  "episode_run_time": [],
+  "last_episode_to_air": {
+    "air_date": "2019-05-19",
+    "season_number": 8,
+    "episode_number": 6,
+    "runtime": 80
+  },
+  "number_of_seasons": 8,
+  "number_of_episodes": 73,
+  "tagline": "Winter is coming.",
+  "status": "Ended",
+  "origin_country": ["US"],
+  "videos": {
+    "results": [
+      {
+        "iso_639_1": "en",
+        "name": "Official Series Trailer",
+        "key": "KPLWWIOCOOQ",
+        "site": "YouTube",
+        "type": "Trailer",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Inside Game of Thrones: A Story in Camera Work",
+        "key": "y2ZJ3lTaREY",
+        "site": "YouTube",
+        "type": "Behind the Scenes",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Inside Game of Thrones: A Story in Prosthetics",
+        "key": "f3MUpuRF6Ck",
+        "site": "YouTube",
+        "type": "Behind the Scenes",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Opening Credits",
+        "key": "s7L2PVdrb_8",
+        "site": "YouTube",
+        "type": "Opening Credits",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Official Trailer",
+        "key": "BpJYNVhGf1s",
+        "site": "YouTube",
+        "type": "Trailer",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Iron Throne Preview",
+        "key": "hhqRmcsWqac",
+        "site": "YouTube",
+        "type": "Teaser",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Inside Game of Thrones",
+        "key": "nf5YvIn6XB8",
+        "site": "YouTube",
+        "type": "Featurette",
+        "official": true
+      }
+    ]
+  },
+  "watch/providers": {
+    "results": {
+      "US": {
+        "flatrate": [
+          {
+            "logo_path": "/64fLWeSyZ1KQZhIdvTdy4QHeWty.png",
+            "provider_id": 1825,
+            "provider_name": "HBO Max Amazon Channel",
+            "display_priority": 16
+          },
+          {
+            "logo_path": "/skypuy7SXuugIQeYg0IglmzoKaS.png",
+            "provider_id": 1899,
+            "provider_name": "HBO Max",
+            "display_priority": 156
+          }
+        ],
+        "buy": [
+          {
+            "logo_path": "/jn6TLbtaTZntTRX9UYucHJvpQx1.png",
+            "provider_id": 10,
+            "provider_name": "Amazon Video",
+            "display_priority": 12
+          },
+          {
+            "logo_path": "/qdEGArH3lKfFnAtYXMkSYk5wxuG.png",
+            "provider_id": 2,
+            "provider_name": "Apple TV Store",
+            "display_priority": 13
+          },
+          {
+            "logo_path": "/aZRENwYILujqs0RVOZutTh0BVGV.png",
+            "provider_id": 3,
+            "provider_name": "Google Play Movies",
+            "display_priority": 26
+          },
+          {
+            "logo_path": "/wpOt6x0dRxTrIzuBosto4LGd7E9.png",
+            "provider_id": 7,
+            "provider_name": "Fandango At Home",
+            "display_priority": 43
+          }
+        ]
+      },
+      "GB": {
+        "flatrate": [
+          {
+            "logo_path": "/64fLWeSyZ1KQZhIdvTdy4QHeWty.png",
+            "provider_id": 1825,
+            "provider_name": "HBO Max Amazon Channel",
+            "display_priority": 16
+          },
+          {
+            "logo_path": "/skypuy7SXuugIQeYg0IglmzoKaS.png",
+            "provider_id": 1899,
+            "provider_name": "HBO Max",
+            "display_priority": 176
+          }
+        ],
+        "buy": [
+          {
+            "logo_path": "/qdEGArH3lKfFnAtYXMkSYk5wxuG.png",
+            "provider_id": 2,
+            "provider_name": "Apple TV Store",
+            "display_priority": 7
+          },
+          {
+            "logo_path": "/jn6TLbtaTZntTRX9UYucHJvpQx1.png",
+            "provider_id": 10,
+            "provider_name": "Amazon Video",
+            "display_priority": 11
+          },
+          {
+            "logo_path": "/nNkZ1JKe6vNhzti14KiKEUWHE6H.png",
+            "provider_id": 130,
+            "provider_name": "Sky Store",
+            "display_priority": 21
+          }
+        ]
+      }
+    }
+  }
+}

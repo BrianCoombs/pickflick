@@ -8,6 +8,7 @@ import {
   jsonb,
   unique
 } from "drizzle-orm/pg-core"
+import type { MediaType } from "../../lib/titles/title"
 
 // All tables are server-only through Drizzle. RLS intentionally has no client
 // policies; anon/authenticated grants are revoked in db/security/.
@@ -21,7 +22,17 @@ export const movieSessions = pgTable("movie_sessions", {
   hostUserId: varchar("host_user_id", { length: 255 }).notNull(),
   userIds: text("user_ids").array().notNull(), // Array of participant user IDs
   preferences: jsonb("preferences"), // Session preferences (genres, year range, etc.)
-  moviePool: jsonb("movie_pool") // Pre-shuffled array of movie IDs for consistent ordering
+  moviePool: jsonb("movie_pool"), // Pre-shuffled array of movie IDs for consistent ordering
+  mediaType: varchar("media_type", { length: 10 })
+    .$type<MediaType>()
+    .default("movie")
+    .notNull(), // "movie" or "tv"; pool ids are in this TMDb id space
+  matchMode: varchar("match_mode", { length: 20 })
+    .$type<"first" | "all">()
+    .default("first")
+    .notNull(), // "first": stop at the first match; "all": swipe the whole pool
+  poolVersion: integer("pool_version").default(1).notNull(), // Bumped whenever the pool changes
+  resetVersion: integer("reset_version").default(0).notNull() // Bumped when the host changes settings mid-session (swipes reset)
 }).enableRLS()
 
 // Individual swipes on movies
@@ -108,13 +119,19 @@ export const userMoviePreferences = pgTable("user_movie_preferences", {
 }).enableRLS()
 
 // Match history for analytics
-export const matchHistory = pgTable("match_history", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  sessionId: uuid("session_id")
-    .references(() => movieSessions.id)
-    .notNull(),
-  movieId: varchar("movie_id", { length: 50 }).notNull(),
-  matchedAt: timestamp("matched_at").defaultNow().notNull(),
-  watchedAt: timestamp("watched_at"),
-  userRatings: jsonb("user_ratings") // Store individual user ratings after watching
-}).enableRLS()
+export const matchHistory = pgTable(
+  "match_history",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sessionId: uuid("session_id")
+      .references(() => movieSessions.id)
+      .notNull(),
+    movieId: varchar("movie_id", { length: 50 }).notNull(),
+    matchedAt: timestamp("matched_at").defaultNow().notNull(),
+    watchedAt: timestamp("watched_at"),
+    userRatings: jsonb("user_ratings") // Store individual user ratings after watching
+  },
+  table => ({
+    uniqueSessionMovie: unique().on(table.sessionId, table.movieId)
+  })
+).enableRLS()
