@@ -273,3 +273,18 @@ Replaces the "Out of movies" branch in swipe-interface.tsx (decision 6).
   - The Swiper remounts at 1/N, because it is keyed by `poolVersion`.
   - A participant who loads the page after the reset sees no notice, because the hook starts from the server's current value.
 - **Non-hosts** never see the button. They get the read-only Rental terms sheet instead.
+
+## Addendum 2 (2026-11-25, from Brian): how it works, and agreed so far
+- **How it works.** The swipe screen shows a short "how it works" strip under the status bar that names the mode:
+  - First mode: "First tape everyone rents wins."
+  - All mode: "Collecting every match: swipe all N, then see the list."
+- **Agreed so far.** In all mode it also shows an "Agreed so far: N" chip. Tapping it opens a bottom sheet listing the agreed titles (poster thumbnail, name, year, rating), built with `getEnrichedTitle`, or with the titles already loaded on the page.
+- **Poll.** While the session is started in all mode, the poll returns `agreedIds` and `agreedCount`; in first mode it sends `[]`. This replaces the earlier rule that the agreed count is never sent before the end.
+- **Lobby.** The Rental terms panel also explains the basics (swipe right to rent, left to pass, and how the session ends).
+
+## Addendum 3 (2026-11-25, from Brian): replaces the "how it works" part of Addendum 2
+- **No strip on the swipe screen.**
+- **Lobby:** "How it works" appears as a panel in the lobby, where everyone gathers before the start.
+- **Swipe screen:** a "?" icon button in the status bar (44px, aria-label "How it works") opens the same content in a bottom sheet.
+- **Shared component:** both use one `HowItWorks` component that takes `matchMode`, `mediaType` and `poolSize`.
+- **Agreed so far:** the chip and sheet from Addendum 2 stay as they were (all mode only, in the status bar).

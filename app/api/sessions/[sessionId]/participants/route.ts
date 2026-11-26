@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getAuthenticatedUser } from "@/lib/auth/server"
+import { eq } from "drizzle-orm"
 import { db } from "@/db/db"
 import { movieSessions } from "@/db/schema"
-import { eq } from "drizzle-orm"
+import { getAuthenticatedUser } from "@/lib/auth/server"
+import { participantsResponse } from "@/lib/sessions/poll"
+import { parsePool } from "@/lib/sessions/settle"
+import { settleSession } from "@/lib/sessions/settle-session"
 
+// Polled every 3 seconds by useSessionParticipants. While swiping it also
+// settles the session, so one whose finishing swipe request failed still
+// completes here.
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ sessionId: string }> }
@@ -20,7 +26,12 @@ export async function GET(
     const [session] = await db
       .select({
         userIds: movieSessions.userIds,
-        status: movieSessions.status
+        status: movieSessions.status,
+        matchMode: movieSessions.matchMode,
+        mediaType: movieSessions.mediaType,
+        poolVersion: movieSessions.poolVersion,
+        resetVersion: movieSessions.resetVersion,
+        moviePool: movieSessions.moviePool
       })
       .from(movieSessions)
       .where(eq(movieSessions.id, sessionId))
@@ -35,11 +46,26 @@ export async function GET(
       return NextResponse.json({ error: "Access denied" }, { status: 403 })
     }
 
-    return NextResponse.json({
-      count: session.userIds.length,
-      status: session.status,
-      sessionStarted: session.status === "started"
-    })
+    const settled =
+      session.status === "started" ? await settleSession(sessionId) : null
+
+    return NextResponse.json(
+      participantsResponse(
+        {
+          ...session,
+          status: settled?.status ?? session.status,
+          poolVersion: settled?.poolVersion ?? session.poolVersion,
+          resetVersion: settled?.resetVersion ?? session.resetVersion,
+          poolSize: settled?.poolSize ?? parsePool(session.moviePool).length
+        },
+        settled && {
+          progress: settled.progress,
+          done: settled.done,
+          step: settled.nextStep,
+          agreed: settled.agreedIds
+        }
+      )
+    )
   } catch (error) {
     console.error("Error fetching participant count:", error)
     return NextResponse.json(

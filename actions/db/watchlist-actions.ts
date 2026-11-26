@@ -20,6 +20,8 @@ import {
   type SourceType
 } from "@/lib/watchlists/sources"
 import { revokeTraktToken } from "@/lib/watchlists/trakt"
+import { allowedSourceTypes } from "@/lib/titles/sources"
+import { parseMediaType } from "@/lib/titles/title"
 
 export interface WatchlistOption {
   userId: string
@@ -123,7 +125,10 @@ export async function getSessionWatchlistOptions(
   if (!user) return { isSuccess: false, message: "Unauthorized" }
 
   const [session] = await db
-    .select({ userIds: movieSessions.userIds })
+    .select({
+      userIds: movieSessions.userIds,
+      mediaType: movieSessions.mediaType
+    })
     .from(movieSessions)
     .where(eq(movieSessions.id, sessionId))
     .limit(1)
@@ -137,9 +142,13 @@ export async function getSessionWatchlistOptions(
     getDisplayNames(session.userIds),
     getSourcesForUsers(session.userIds)
   ])
-  const visible = letterboxdEnabled()
-    ? sources
-    : sources.filter(source => source.sourceType !== "letterboxd")
+  // Letterboxd only lists films, so TV sessions can't use it
+  const allowed = allowedSourceTypes(parseMediaType(session.mediaType))
+  const visible = sources.filter(
+    source =>
+      allowed.includes(source.sourceType) &&
+      (source.sourceType !== "letterboxd" || letterboxdEnabled())
+  )
 
   return {
     isSuccess: true,

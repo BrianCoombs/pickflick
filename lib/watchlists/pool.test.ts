@@ -24,3 +24,11 @@ test("caps the pool at the requested size", () => {
 test("returns an empty pool when every list is empty", () => {
   assert.deepEqual(buildWatchlistPool([[], []], 50), [])
 })
+
+test("drops excluded ids before cutting to size", () => {
+  const big = Array.from({ length: 100 }, (_, i) => i + 1)
+  const exclude = Array.from({ length: 60 }, (_, i) => i + 1)
+  const pool = buildWatchlistPool([big], 50, Math.random, exclude)
+  assert.equal(pool.length, 40)
+  pool.forEach(id => assert.ok(id > 60))
+})

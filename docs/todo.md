@@ -41,6 +41,11 @@ Work happens on branch `feat/swipe-upgrades`. Nothing merges to `main` or touche
   - Mid-session, saving first asks the host to confirm: "This resets everyone's swipes." It then rebuilds the pool, deletes all swipes, and bumps `pool_version` and `reset_version`.
   - Everyone else gets a notice when `reset_version` goes up: "The host changed the settings and reset the session. Start swiping again." The host doesn't see it.
   - Non-hosts see the read-only Rental terms instead of the button.
+- **How it works.**
+  - **Lobby:** a "How it works" panel where everyone waits before the start. It covers swiping right to rent and left to pass, and how the session ends in its mode. In all mode that means swiping every title, then seeing the list.
+  - **Swipe screen:** no strip. A "?" icon in the status bar opens the same explanation in a sheet.
+  - **All mode:** an "Agreed so far: N" chip in the status bar opens a sheet listing those titles (poster, title, year).
+  - The poll sends the agreed ids while swiping in all mode. This reverses the earlier "keep matches secret until the end" choice, at Brian's request.
 - **Progress comes from saved swipes.** Refreshing or rejoining puts you on your first unswiped card, and this still works after the pool grows.
 
 ## Fixes found while planning
@@ -62,14 +67,14 @@ Work happens on branch `feat/swipe-upgrades`. Nothing merges to `main` or touche
 - [x] 4. `lib/sessions/progress.ts` (`nextCard`, `memberProgress`, `everyoneDone`, `agreedTitles`, `nextStep`, `canAddMore`, `appendBatch`) and `joinDecision`, with tests
 
 ### Phase 2: server
-- [ ] 5. `tmdb.getTitle` / `discover`, `getEnrichedTitle`, `getTitlePool({ mediaType, prefs, size, exclude })`, watchlist pools with `mediaType` and `exclude`, Trakt shows
-- [ ] 6. Actions:
+- [x] 5. `tmdb.getTitle` / `discover`, `getEnrichedTitle`, `getTitlePool({ mediaType, prefs, size, exclude })`, watchlist pools with `mediaType` and `exclude`, Trakt shows
+- [x] 6. Actions:
   - `createMovieSession` takes the media type and match mode.
   - `updateSessionPreferences` becomes `updateSessionSettings({ mediaType, matchMode, preferences })`. It is host-only, works while the session is active or started, and bumps `reset_version` when started.
   - `swipeMovie` checks the pool and handles all mode.
   - New `settleSession`, `addMoreMovies` and `endSessionNow`.
   - `joinMovieSession` lets members rejoin.
-- [ ] 7. The participants poll returns `poolVersion`, `resetVersion` and progress. The hook refreshes when either changes and flags a reset for non-hosts.
+- [x] 7. The participants poll returns `poolVersion`, `resetVersion` and progress. The hook refreshes when either changes and flags a reset for non-hosts.
 
 ### Phase 3: screens (parallel, separate files)
 - [ ] 8. Swipe card: `Title`, length line, "Back of the box" sheet for the full description, resume from saved swipes, remount on pool change
@@ -78,7 +83,7 @@ Work happens on branch `feat/swipe-upgrades`. Nothing merges to `main` or touche
   - A reset confirmation when saving mid-session.
   - Genre, provider and rating chips.
   - "Only N match" message.
-- [ ] 10. Reset notice for participants, waiting counter (replaces "Out of movies"), Add 50 more, host's End now, all-matches results page, Rental terms panel and settings sheet
+- [ ] 10. "How it works" in the lobby and behind a "?" on the swipe screen, the agreed-so-far chip and sheet, reset notice for participants, waiting counter (replaces "Out of movies"), Add 50 more, host's End now, all-matches results page, Rental terms panel and settings sheet
 
 ### Phase 4: check
 - [ ] 11. Unit tests, `tsc`, lint, and a code review of the whole branch
