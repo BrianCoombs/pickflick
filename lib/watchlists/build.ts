@@ -2,7 +2,8 @@
 <ai_context>
 Builds a session's movie or TV pool from the selected people's watchlists,
 fetched live from Trakt and Letterboxd every time. Letterboxd only lists
-films, so TV pools skip it.
+films, so TV pools skip it, and so does every pool when LETTERBOXD_ENABLED is
+"false".
 </ai_context>
 */
 
@@ -13,7 +14,7 @@ import {
 } from "./combine"
 import { allowedSourceTypes } from "../titles/sources"
 import type { MediaType } from "../titles/title"
-import { getLetterboxdWatchlistTmdbIds } from "./letterboxd"
+import { getLetterboxdWatchlistTmdbIds, letterboxdEnabled } from "./letterboxd"
 import { getSourcesForUsers, getValidTraktToken } from "./sources"
 import { getTraktWatchlistTmdbIds } from "./trakt"
 
@@ -40,7 +41,10 @@ export async function buildPoolFromWatchlists(
   redirectUri: string,
   { mediaType = "movie", exclude = [] }: WatchlistPoolOptions = {}
 ): Promise<{ movieIds: number[]; failed: WatchlistSourceRef[] }> {
-  const allowed = allowedSourceTypes(mediaType)
+  // LETTERBOXD_ENABLED=false keeps Letterboxd out of pools, not just the UI
+  const allowed = allowedSourceTypes(mediaType, {
+    letterboxd: letterboxdEnabled()
+  })
   const selected = sources.filter(s => allowed.includes(s.sourceType))
   const linked = await getSourcesForUsers(selected.map(s => s.userId))
   const deadline = Date.now() + SOURCE_TIME_BUDGET_MS

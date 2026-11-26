@@ -9,3 +9,17 @@ test("movies can use Trakt and Letterboxd", () => {
 test("TV uses Trakt only (Letterboxd is films only)", () => {
   assert.deepEqual(allowedSourceTypes("tv"), ["trakt"])
 })
+
+test("with Letterboxd switched off, movies use Trakt only", () => {
+  assert.deepEqual(allowedSourceTypes("movie", { letterboxd: false }), [
+    "trakt"
+  ])
+  assert.deepEqual(allowedSourceTypes("tv", { letterboxd: false }), ["trakt"])
+})
+
+test("Letterboxd on is the same as the default", () => {
+  assert.deepEqual(allowedSourceTypes("movie", { letterboxd: true }), [
+    "trakt",
+    "letterboxd"
+  ])
+})

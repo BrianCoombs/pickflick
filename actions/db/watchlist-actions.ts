@@ -143,12 +143,10 @@ export async function getSessionWatchlistOptions(
     getSourcesForUsers(session.userIds)
   ])
   // Letterboxd only lists films, so TV sessions can't use it
-  const allowed = allowedSourceTypes(parseMediaType(session.mediaType))
-  const visible = sources.filter(
-    source =>
-      allowed.includes(source.sourceType) &&
-      (source.sourceType !== "letterboxd" || letterboxdEnabled())
-  )
+  const allowed = allowedSourceTypes(parseMediaType(session.mediaType), {
+    letterboxd: letterboxdEnabled()
+  })
+  const visible = sources.filter(source => allowed.includes(source.sourceType))
 
   return {
     isSuccess: true,

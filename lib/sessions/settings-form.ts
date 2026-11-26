@@ -79,18 +79,18 @@ const sourceAllowed = (key: string, mediaType: MediaType) => {
   return ref !== null && allowedSourceTypes(mediaType).includes(ref.sourceType)
 }
 
-// Genre ids differ between movies and TV, and Letterboxd only lists films
+// The ticked lists this media type can use. Letterboxd only lists films, so
+// TV skips it; the ticks stay in the form for switching back to movies.
+export const usableSources = (state: SettingsFormState): string[] =>
+  state.sources.filter(key => sourceAllowed(key, state.mediaType))
+
+// Genre ids differ between movies and TV
 export function switchMediaType(
   state: SettingsFormState,
   mediaType: MediaType
 ): SettingsFormState {
   if (state.mediaType === mediaType) return state
-  return {
-    ...state,
-    mediaType,
-    genres: [],
-    sources: state.sources.filter(key => sourceAllowed(key, mediaType))
-  }
+  return { ...state, mediaType, genres: [] }
 }
 
 function parseYear(text: string): number | undefined {
@@ -108,9 +108,7 @@ export function toSettings(state: SettingsFormState): SessionSettings {
       matchMode,
       preferences: {
         mode: "watchlists",
-        sources: state.sources
-          .filter(key => sourceAllowed(key, mediaType))
-          .flatMap(key => parseSourceKey(key) ?? [])
+        sources: usableSources(state).flatMap(key => parseSourceKey(key) ?? [])
       }
     }
   }
@@ -129,13 +127,19 @@ export function toSettings(state: SettingsFormState): SessionSettings {
   }
 }
 
-// Earlier picks that are still on offer; with none, tick every list
+// Earlier picks that are still on offer. When none of them suit the media
+// type, every list it can use is ticked too (never Letterboxd for TV).
 export function initialSourceKeys(
   previous: readonly string[],
-  available: readonly string[]
+  available: readonly string[],
+  mediaType: MediaType
 ): string[] {
   const kept = previous.filter(key => available.includes(key))
-  return kept.length > 0 ? kept : [...available]
+  if (kept.some(key => sourceAllowed(key, mediaType))) return kept
+  const usable = available.filter(
+    key => sourceAllowed(key, mediaType) && !kept.includes(key)
+  )
+  return [...kept, ...usable]
 }
 
 export function toggleIn<T>(list: readonly T[], value: T): T[] {

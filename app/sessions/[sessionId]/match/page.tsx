@@ -97,15 +97,22 @@ export default async function MatchPage({ params }: MatchPageProps) {
   const swipeTotal = swipeCount?.value ?? 0
   const date = matches[0]?.matchedAt ?? session.createdAt
 
-  // First mode: one title ended the session
+  // First mode: one title ended the session. If TMDb can't load it, the
+  // receipt still prints with what we know.
   if (session.matchedMovieId) {
+    const matchedId = session.matchedMovieId
+    const title = await getEnrichedTitle(mediaType, parseInt(matchedId)).catch(
+      error => {
+        console.error("Failed to load the matched title:", error)
+        return null
+      }
+    )
     return (
       <FirstMatch
         sessionId={sessionId}
-        title={await getEnrichedTitle(
-          mediaType,
-          parseInt(session.matchedMovieId)
-        )}
+        title={title}
+        fallbackName={`Tape #${matchedId}`}
+        kindLabel={mediaCopy(mediaType).kindLabel}
         date={date}
         renters={session.userIds.length}
         swipeTotal={swipeTotal}
@@ -144,20 +151,26 @@ export default async function MatchPage({ params }: MatchPageProps) {
 function FirstMatch({
   sessionId,
   title,
+  fallbackName,
+  kindLabel,
   date,
   renters,
   swipeTotal
 }: {
   sessionId: string
-  title: Title
+  title: Title | null // null when TMDb couldn't load it
+  fallbackName: string
+  kindLabel: string
   date: Date
   renters: number
   swipeTotal: number
 }) {
-  const posterUrl = TMDbAPI.getPosterUrl(title.posterPath, "w500")
-  const details = [title.genres[0]?.name, titleLengthLabel(title)]
-    .filter(Boolean)
-    .join(" · ")
+  const posterUrl = title && TMDbAPI.getPosterUrl(title.posterPath, "w500")
+  const details = title
+    ? [title.genres[0]?.name, titleLengthLabel(title)]
+        .filter(Boolean)
+        .join(" · ")
+    : ""
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-12 pt-4">
@@ -184,20 +197,26 @@ function FirstMatch({
             <MatchReceiptHeader sessionId={sessionId} date={date} />
             <ReceiptRule />
             <div className="font-display text-store-red-ink my-1 text-base leading-tight">
-              {title.name}
-              {title.year && ` (${title.year})`}
+              {title ? title.name : fallbackName}
+              {title?.year && ` (${title.year})`}
             </div>
-            <ReceiptLine
-              label={details || mediaCopy(title.mediaType).kindLabel}
-              value={`★ ${title.rating.toFixed(1)}`}
-            />
+            {title ? (
+              <ReceiptLine
+                label={details || kindLabel}
+                value={`★ ${title.rating.toFixed(1)}`}
+              />
+            ) : (
+              <div>
+                {kindLabel} details didn&apos;t load. Refresh to try again.
+              </div>
+            )}
             <ReceiptRule />
             <ReceiptLine label="Renters" value={renters} />
             <ReceiptLine label="Swipes" value={swipeTotal} />
           </Receipt>
 
           <div className="mt-6 grid gap-3">
-            {title.trailerUrl && (
+            {title?.trailerUrl && (
               <Button asChild size="lg">
                 <a href={title.trailerUrl} target="_blank" rel="noreferrer">
                   Watch trailer
@@ -269,6 +288,14 @@ function AllMatches({
         ))}
         {agreedCount === 0 && (
           <div className="py-0.5">No {plural} everyone rented.</div>
+        )}
+        {/* Some or all of the agreed titles didn't load from TMDb */}
+        {titles.length < agreedCount && (
+          <div className="py-0.5">
+            {titles.length === 0
+              ? `Couldn't load the ${plural} you agreed on. Refresh to try again.`
+              : `${agreedCount - titles.length} more couldn't load. Refresh to try again.`}
+          </div>
         )}
         <ReceiptRule />
         <ReceiptLine label="Agreed" value={agreedCount} />

@@ -37,7 +37,9 @@ export default function SessionWrapper({
     nextStep,
     agreedIds,
     wasReset,
-    acknowledgeReset
+    acknowledgeReset,
+    deleted,
+    goToResults
   } = useSessionParticipants({
     sessionId: props.sessionId,
     initialCount: initialParticipantCount,
@@ -57,6 +59,8 @@ export default function SessionWrapper({
       agreedIds={agreedIds}
       wasReset={wasReset}
       acknowledgeReset={acknowledgeReset}
+      deleted={deleted}
+      goToResults={goToResults}
     />
   )
 }

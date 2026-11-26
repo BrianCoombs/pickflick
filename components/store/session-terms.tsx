@@ -59,7 +59,7 @@ export function SessionTermsButton(props: SessionTermsProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Session settings">
+        <Button variant="ghost" size="icon" aria-label="Rental terms">
           <Info className="size-5" />
         </Button>
       </SheetTrigger>

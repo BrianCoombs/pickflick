@@ -6,12 +6,13 @@ import {
 } from "@/actions/db/watchlist-actions"
 import { db } from "@/db/db"
 import { movieSessions, swipes } from "@/db/schema"
-import { TMDbAPI } from "@/lib/api/tmdb"
+import { getEnrichedTitle } from "@/lib/api/movie-service"
 import { getAuthenticatedUser } from "@/lib/auth/server"
 import { normalizePreferences } from "@/lib/sessions/preferences"
 import { parseMatchMode } from "@/lib/sessions/progress"
 import { parsePool } from "@/lib/sessions/settle"
-import { parseMediaType, type Title } from "@/lib/titles/title"
+import { loadTitlesInOrder } from "@/lib/titles/placeholder"
+import { parseMediaType } from "@/lib/titles/title"
 import SessionWrapper from "./_components/session-wrapper"
 
 interface SessionPageProps {
@@ -60,11 +61,13 @@ export default async function SessionPage({ params }: SessionPageProps) {
   const mediaType = parseMediaType(session.mediaType)
   const sessionStarted = session.status === "started"
 
-  // Fetch details for the stored ids in order. A title TMDb can't load is
-  // dropped, and a failed people lookup shouldn't take the page down.
-  const tmdb = new TMDbAPI()
-  const [titleResults, swipedRows, people] = await Promise.all([
-    Promise.all(pool.map(id => tmdb.getTitle(mediaType, id).catch(() => null))),
+  // Details for every stored id, in order, from the 24-hour title cache (8
+  // TMDb calls at a time on a miss). A title that still can't load becomes a
+  // placeholder card rather than being dropped, so the deck matches the
+  // server's pool and everyone can finish it. A failed people lookup
+  // shouldn't take the page down either.
+  const [titles, swipedRows, people] = await Promise.all([
+    loadTitlesInOrder(mediaType, pool, getEnrichedTitle, 8),
     // Where this person is up to: the swipe card resumes from saved swipes
     sessionStarted
       ? db
@@ -76,7 +79,6 @@ export default async function SessionPage({ params }: SessionPageProps) {
       : [],
     loadPeople(sessionId)
   ])
-  const titles = titleResults.filter((t): t is Title => t !== null)
 
   return (
     <div className="flex flex-1 flex-col">

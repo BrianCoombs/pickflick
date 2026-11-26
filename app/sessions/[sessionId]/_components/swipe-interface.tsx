@@ -1,13 +1,21 @@
 "use client"
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react"
+import Link from "next/link"
 import { animate, motion, useMotionValue, useTransform } from "framer-motion"
 import { Trash2 } from "lucide-react"
 import { swipeMovie } from "@/actions/db/movies-actions"
 import type { WatchlistOption } from "@/actions/db/watchlist-actions"
 import { AgreedSoFar } from "@/components/store/agreed-so-far"
 import { HowItWorksButton } from "@/components/store/how-it-works"
+import { Paper } from "@/components/store/paper"
 import { ResetNotice } from "@/components/store/reset-notice"
 import { SessionTermsButton } from "@/components/store/session-terms"
 import { Sticker } from "@/components/store/sticker"
@@ -32,6 +40,11 @@ import {
 } from "@/components/ui/sheet"
 import { toast } from "@/hooks/use-toast"
 import { TMDbAPI } from "@/lib/api/tmdb"
+import {
+  addConfirmed,
+  confirmedFor,
+  emptyConfirmed
+} from "@/lib/sessions/confirmed-swipes"
 import type { SessionPreferences } from "@/lib/sessions/preferences"
 import {
   nextCard,
@@ -56,6 +69,7 @@ interface SwipeInterfaceProps {
   mediaType: MediaType
   matchMode: MatchMode
   poolVersion: number
+  resetVersion: number
   preferences: SessionPreferences
   poolSize: number
   // This person's saved swipes when the page loaded (swipes.movie_id, varchar)
@@ -70,15 +84,61 @@ interface SwipeInterfaceProps {
   agreedIds: string[]
   wasReset: boolean
   acknowledgeReset: () => void
+  // The host deleted the session
+  deleted: boolean
+  // Sends this person to the results once, however the session ended
+  goToResults: () => void
+}
+
+interface SwiperProps extends SwipeInterfaceProps {
+  confirmedIds: ReadonlySet<string>
+  onConfirmed: (id: string, swipedAt: number) => void
 }
 
 export default function SwipeInterface(props: SwipeInterfaceProps) {
+  const { resetVersion } = props
+  // Kept here, above the keyed Swiper, so a swipe that lands while the deck
+  // remounts still counts. A host reset clears them.
+  const [confirmed, setConfirmed] = useState(() => emptyConfirmed(resetVersion))
+  const resetVersionRef = useRef(resetVersion)
+  useEffect(() => {
+    resetVersionRef.current = resetVersion
+  }, [resetVersion])
+  const onConfirmed = useCallback((id: string, swipedAt: number) => {
+    setConfirmed(prev =>
+      addConfirmed(prev, swipedAt, resetVersionRef.current, id)
+    )
+  }, [])
+
+  if (props.deleted) {
+    return (
+      <div className="mx-auto w-full max-w-md px-4 pt-6">
+        <h1 className="store-heading mb-4 text-3xl">
+          Session
+          <br />
+          closed
+        </h1>
+        <Paper className="text-sm">
+          This session was deleted. The host closed it.
+        </Paper>
+        <Button asChild size="lg" className="mt-6 w-full">
+          <Link href="/sessions">Back to sessions</Link>
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <>
       {props.sessionStarted ? (
         // A new pool (settings changed, or more titles added) remounts the
-        // Swiper, so this visit's swipes are dropped and the server's are used
-        <Swiper key={props.poolVersion} {...props} />
+        // Swiper with the server's swipes for it
+        <Swiper
+          key={props.poolVersion}
+          {...props}
+          confirmedIds={confirmedFor(confirmed, resetVersion)}
+          onConfirmed={onConfirmed}
+        />
       ) : (
         <Lobby
           sessionId={props.sessionId}
@@ -112,21 +172,24 @@ function Swiper({
   participantCount,
   progress,
   nextStep,
-  agreedIds
-}: SwipeInterfaceProps) {
-  const router = useRouter()
+  agreedIds,
+  resetVersion,
+  goToResults,
+  confirmedIds,
+  onConfirmed
+}: SwiperProps) {
   const { deleting, deleteSession } = useSessionControls(sessionId)
   const copy = mediaCopy(mediaType)
-  // Swipes confirmed during this visit. The page's swipedIds can lag behind
-  // (a refresh that lands mid-swipe), so the card comes from both.
-  const [localSwiped, setLocalSwiped] = useState<Set<string>>(() => new Set())
   const [brokenPosterKey, setBrokenPosterKey] = useState<string | null>(null)
   // The title whose back-of-the-box sheet is open. It only counts while that
   // title is still the current card, so any swipe closes it.
   const [expandedKey, setExpandedKey] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Refs, not just state, so a double tap or a fast second key press in the
+  // same frame can't sneak in. doneRef holds ids the server confirmed during
+  // this mount, ahead of the re-render that moves to the next card.
   const busyRef = useRef(false)
-  const leavingRef = useRef(false)
+  const doneRef = useRef(new Set<string>())
   const cardRef = useRef<HTMLDivElement>(null)
 
   // The card follows the finger; it leans and shows a stamp as it moves
@@ -135,10 +198,12 @@ function Swiper({
   const passOpacity = useTransform(x, [-110, -20], [1, 0])
   const rentOpacity = useTransform(x, [20, 110], [0, 1])
 
-  // Resume at the first title this person hasn't swiped
+  // Resume at the first title this person hasn't swiped. The page's
+  // swipedIds can lag behind (a refresh that lands mid-swipe), so the card
+  // comes from both.
   const { index, position, total } = nextCard(
     titles.map(t => t.id),
-    [...swipedIds, ...localSwiped]
+    [...swipedIds, ...confirmedIds]
   )
   const current: Title | null = index === -1 ? null : titles[index]
   const sheetOpen = current !== null && expandedKey === current.key
@@ -148,18 +213,24 @@ function Swiper({
     [matchMode, titles, agreedIds]
   )
 
-  // Re-centre before the next card paints. Setting x in swipe() would move
-  // the old card back to the middle for a frame before the new one mounts.
+  // Once the next card is current: re-centre before it paints (setting x in
+  // swipe() would move the old card back to the middle for a frame) and only
+  // then let the next swipe in, so it can't land on the old card
   const currentKey = current?.key
   useLayoutEffect(() => {
     x.set(0)
+    busyRef.current = false
+    setBusy(false)
   }, [currentKey, x])
 
   const swipe = async (direction: Direction) => {
-    // A ref, not just state, so a double tap in the same frame can't sneak in
     if (busyRef.current || !current) return
+    const id = String(current.id)
+    // Already swiped: a key press handled before the next card rendered
+    if (doneRef.current.has(id) || confirmedIds.has(id)) return
     busyRef.current = true
     setBusy(true)
+    const swipedAt = resetVersion
 
     const width = cardRef.current?.offsetWidth ?? 320
     await animate(x, direction === "right" ? width * 1.6 : -width * 1.6, {
@@ -167,18 +238,19 @@ function Swiper({
     })
 
     try {
-      const result = await swipeMovie(sessionId, String(current.id), direction)
+      const result = await swipeMovie(sessionId, id, direction)
       if (!result.isSuccess) throw new Error(result.message)
+      doneRef.current.add(id)
 
       // The session is over: a first-mode match, or the last swipe of an
-      // all-mode session. Otherwise all mode just moves on to the next card.
+      // all-mode session. Stay locked while the results load.
       if (result.data.matched) {
-        // Stay locked while the results load, so no second swipe slips in
-        leavingRef.current = true
-        router.push(`/sessions/${sessionId}/match`)
+        goToResults()
         return
       }
-      setLocalSwiped(prev => new Set(prev).add(String(current.id)))
+      // All mode, or no match yet: on to the next card, whose layout effect
+      // releases the lock
+      onConfirmed(id, swipedAt)
     } catch {
       toast({
         title: "Error",
@@ -186,11 +258,8 @@ function Swiper({
         variant: "destructive"
       })
       animate(x, 0, { type: "spring", stiffness: 400, damping: 30 })
-    } finally {
-      if (!leavingRef.current) {
-        busyRef.current = false
-        setBusy(false)
-      }
+      busyRef.current = false
+      setBusy(false)
     }
   }
 
@@ -209,8 +278,11 @@ function Swiper({
           targetTag: target?.tagName ?? "",
           targetEditable: target?.isContentEditable ?? false
         },
-        // Sheets (back of the box, how it works, ...) are dialogs too
-        document.querySelector("[role=dialog], [role=alertdialog]") !== null
+        // Sheets (back of the box, how it works, ...) are dialogs too. One
+        // that's animating closed is still in the page, so only open ones count.
+        document.querySelector(
+          "[role=dialog][data-state=open], [role=alertdialog][data-state=open]"
+        ) !== null
       )
       if (direction) swipe(direction)
     }
@@ -298,6 +370,7 @@ function Swiper({
           progress={progress}
           nextStep={nextStep}
           poolSize={poolSize}
+          goToResults={goToResults}
         />
       </div>
     )
@@ -400,7 +473,7 @@ function Swiper({
             )}
           </div>
         )}
-        <p className="line-clamp-2">{current.overview}</p>
+        {current.overview && <p className="line-clamp-2">{current.overview}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
@@ -460,7 +533,9 @@ function BackOfTheBox({
             The full description of this {kind}
           </SheetDescription>
           {line && <p className="mt-2 text-xs">{line}</p>}
-          <p className="mt-3 text-sm leading-relaxed">{title.overview}</p>
+          {title.overview && (
+            <p className="mt-3 text-sm leading-relaxed">{title.overview}</p>
+          )}
           <SheetClose asChild>
             <Button variant="default" className="mt-4 w-full">
               Put it back

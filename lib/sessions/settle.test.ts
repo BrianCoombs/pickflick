@@ -1,11 +1,14 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 import {
+  emptyBatchReason,
+  firstMatchResult,
   isInPool,
   isShortPool,
   parsePool,
   settingsChange,
-  settleDecision
+  settleDecision,
+  swipeGate
 } from "./settle"
 
 const swipesFor = (
@@ -171,4 +174,99 @@ test("a pool under one batch is short", () => {
   assert.equal(isShortPool(50), false)
   assert.equal(isShortPool(0), true)
   assert.equal(isShortPool(10, 10), false)
+})
+
+// swipeGate
+
+const live = {
+  status: "started",
+  userIds: ["a", "b"],
+  moviePool: [1, 2, 3],
+  resetVersion: 2
+}
+const swipe = { userId: "a", movieId: "2", resetVersion: 2 }
+
+test("swipeGate lets a member swipe a pool title in a started session", () => {
+  assert.equal(swipeGate(live, swipe), "ok")
+})
+
+test("swipeGate reports a missing session", () => {
+  assert.equal(swipeGate(undefined, swipe), "missing")
+})
+
+test("swipeGate turns away non-members", () => {
+  assert.equal(swipeGate(live, { ...swipe, userId: "z" }), "not-member")
+})
+
+test("swipeGate sends swipes on a finished session to the results", () => {
+  assert.equal(swipeGate({ ...live, status: "completed" }, swipe), "completed")
+})
+
+test("swipeGate refuses swipes in the lobby or an expired session", () => {
+  assert.equal(swipeGate({ ...live, status: "active" }, swipe), "closed")
+  assert.equal(swipeGate({ ...live, status: "expired" }, swipe), "closed")
+})
+
+test("swipeGate refuses a swipe validated before a host reset", () => {
+  assert.equal(swipeGate({ ...live, resetVersion: 3 }, swipe), "reset")
+})
+
+test("swipeGate checks the title against the current pool", () => {
+  assert.equal(swipeGate(live, { ...swipe, movieId: "9" }), "not-in-pool")
+  assert.equal(
+    swipeGate({ ...live, moviePool: [1, 3] }, { ...swipe, movieId: "2" }),
+    "not-in-pool"
+  )
+})
+
+test("swipeGate allows a pool that grew (Add more) without a reset", () => {
+  assert.equal(
+    swipeGate({ ...live, moviePool: [1, 2, 3, 4] }, { ...swipe, movieId: "4" }),
+    "ok"
+  )
+})
+
+// firstMatchResult
+
+test("firstMatchResult: the winning swipe reports its own title", () => {
+  assert.deepEqual(firstMatchResult("7", true, undefined), {
+    matched: true,
+    movieId: "7"
+  })
+})
+
+test("firstMatchResult: losing to another completion reports the real match", () => {
+  assert.deepEqual(
+    firstMatchResult("7", false, { status: "completed", matchedMovieId: "5" }),
+    { matched: true, movieId: "5" }
+  )
+})
+
+test("firstMatchResult: losing because the pool changed is no match", () => {
+  assert.deepEqual(
+    firstMatchResult("7", false, { status: "started", matchedMovieId: null }),
+    { matched: false }
+  )
+  assert.deepEqual(firstMatchResult("7", false, undefined), { matched: false })
+})
+
+test("firstMatchResult: a session completed with no single match id", () => {
+  assert.deepEqual(
+    firstMatchResult("7", false, { status: "completed", matchedMovieId: null }),
+    { matched: true, movieId: undefined }
+  )
+})
+
+// emptyBatchReason
+
+test("an empty batch with no failures means the source ran out", () => {
+  assert.equal(
+    emptyBatchReason({ failedSources: 0, threw: false }),
+    "exhausted"
+  )
+})
+
+test("an empty batch after a failed fetch is a failure, not exhaustion", () => {
+  assert.equal(emptyBatchReason({ failedSources: 1, threw: false }), "failed")
+  assert.equal(emptyBatchReason({ failedSources: 0, threw: true }), "failed")
 })

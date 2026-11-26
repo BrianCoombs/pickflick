@@ -37,10 +37,12 @@ export default async function SessionsPage() {
     getActiveSessions(),
     getRecentMatches()
   ])
+  // Lobby sessions and ones already swiping ("started")
   const activeSessions: {
     id: string
     userIds: string[]
     mediaType: string
+    status?: string
   }[] = sessionsResult.isSuccess ? sessionsResult.data : []
   const recentMatches = matchesResult.isSuccess ? matchesResult.data : []
 
@@ -74,7 +76,10 @@ export default async function SessionsPage() {
                 {parseMediaType(session.mediaType) === "tv" && (
                   <TvMark className="mr-1.5 align-middle" />
                 )}
-                {peopleCount(session.userIds.length)} · waiting in the lobby
+                {session.status === "started"
+                  ? "Swiping now"
+                  : "Waiting in the lobby"}{" "}
+                · {peopleCount(session.userIds.length)}
               </>
             }
           />

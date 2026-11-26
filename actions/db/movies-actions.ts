@@ -4,7 +4,7 @@ import { and, desc, eq, inArray, or, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/db/db"
 import { friendships, matchHistory, movieSessions, swipes } from "@/db/schema"
-import { MovieService } from "@/lib/api/movie-service"
+import { getEnrichedTitle, getTitlePool } from "@/lib/api/movie-service"
 import { getAuthenticatedUser } from "@/lib/auth/server"
 import {
   normalizePreferences,
@@ -18,7 +18,6 @@ import {
   type MatchMode
 } from "@/lib/sessions/progress"
 import {
-  acceptsSwipes,
   everyoneLiked,
   isSessionMember,
   joinDecision,
@@ -27,17 +26,25 @@ import {
   type SwipeDirection
 } from "@/lib/sessions/rules"
 import {
-  isInPool,
+  emptyBatchReason,
+  firstMatchResult,
   isShortPool,
   parsePool,
   settingsChange,
-  settleDecision
+  settleDecision,
+  swipeGate,
+  type SwipeGate
 } from "@/lib/sessions/settle"
-import { completeSession, settleSession } from "@/lib/sessions/settle-session"
+import {
+  completeSession,
+  recordSwipe,
+  settleSession
+} from "@/lib/sessions/settle-session"
 import { allowedSourceTypes } from "@/lib/titles/sources"
 import { parseMediaType, type MediaType } from "@/lib/titles/title"
 import { buildPoolFromWatchlists } from "@/lib/watchlists/build"
 import type { WatchlistSourceRef } from "@/lib/watchlists/combine"
+import { letterboxdEnabled } from "@/lib/watchlists/letterboxd"
 import { getRequestOrigin } from "@/lib/watchlists/origin"
 import { traktRedirectUri } from "@/lib/watchlists/redirect"
 import { ActionState } from "@/types/server-action-types"
@@ -58,7 +65,21 @@ export interface PoolSummary {
 
 export type AddMoreResult =
   | { added: number; poolVersion: number }
-  | { added: 0; reason: "exhausted" | "already-added" | "not-allowed" }
+  | {
+      added: 0
+      // exhausted: nothing new matches. failed: a watchlist or TMDb fetch
+      // failed, so trying again may work
+      reason: "exhausted" | "failed" | "already-added" | "not-allowed"
+    }
+
+export interface ActiveSessionSummary {
+  id: string
+  status: "active" | "started" // lobby, or swiping
+  userIds: string[]
+  mediaType: MediaType
+  matchMode: MatchMode
+  createdAt: Date
+}
 
 type PoolBuild =
   | { error: string }
@@ -70,8 +91,9 @@ type PoolBuild =
     }
 
 // Builds (or extends, with exclude) a pool from filters or watchlists. Only
-// members' watchlists of a kind the media type allows are used, and the
-// preferences returned are the ones to save.
+// members' watchlists of a kind the media type allows are used (no Letterboxd
+// when LETTERBOXD_ENABLED=false), and the preferences returned are the ones
+// to save.
 async function buildPool({
   mediaType,
   preferences,
@@ -84,7 +106,9 @@ async function buildPool({
   exclude?: number[]
 }): Promise<PoolBuild> {
   if (preferences.mode === "watchlists") {
-    const allowed = allowedSourceTypes(mediaType)
+    const allowed = allowedSourceTypes(mediaType, {
+      letterboxd: letterboxdEnabled()
+    })
     const sources = preferences.sources.filter(
       s => memberIds.includes(s.userId) && allowed.includes(s.sourceType)
     )
@@ -105,7 +129,7 @@ async function buildPool({
     }
   }
 
-  const pool = await new MovieService().getTitlePool({
+  const pool = await getTitlePool({
     mediaType,
     prefs: preferences,
     size: BATCH_SIZE,
@@ -133,8 +157,8 @@ function parseSettings(settings: unknown) {
   }
 }
 
+// The host is the only member to start with; everyone else joins by code
 export async function createMovieSession(
-  userIds: string[],
   settings: SessionSettingsInput
 ): Promise<ActionState<{ sessionId: string } & PoolSummary>> {
   try {
@@ -143,15 +167,12 @@ export async function createMovieSession(
       return { isSuccess: false, message: "Unauthorized" }
     }
     const userId = user.id
-
-    // Ensure the host is included in the session
-    const allUserIds = Array.from(new Set([userId, ...userIds]))
     const { mediaType, matchMode, preferences } = parseSettings(settings)
 
     const build = await buildPool({
       mediaType,
       preferences,
-      memberIds: allUserIds
+      memberIds: [userId]
     })
     if ("error" in build) return { isSuccess: false, message: build.error }
     if (build.ids.length === 0) {
@@ -162,7 +183,7 @@ export async function createMovieSession(
       .insert(movieSessions)
       .values({
         hostUserId: userId,
-        userIds: allUserIds,
+        userIds: [userId],
         preferences: build.preferences,
         mediaType,
         matchMode,
@@ -216,13 +237,25 @@ export async function startMovieSession(
       }
     }
 
-    // Update session status to 'started'
-    await db
+    // Only the lobby can be dealt: never reopen a finished session or
+    // restart one that's already swiping
+    const started = await db
       .update(movieSessions)
-      .set({
-        status: "started"
-      })
-      .where(eq(movieSessions.id, sessionId))
+      .set({ status: "started" })
+      .where(
+        and(eq(movieSessions.id, sessionId), eq(movieSessions.status, "active"))
+      )
+      .returning({ id: movieSessions.id })
+
+    if (started.length === 0) {
+      return {
+        isSuccess: false,
+        message:
+          session.status === "started"
+            ? "This session has already started"
+            : "This session is no longer in the lobby"
+      }
+    }
 
     return {
       isSuccess: true,
@@ -323,11 +356,49 @@ export async function joinMovieSession(
   }
 }
 
+type SwipeResult = { matched: boolean; movieId?: string; done: boolean }
+
+// What the swiper hears when swipeGate turns the swipe away
+function refusedSwipe(
+  gate: Exclude<SwipeGate, "ok">,
+  matchedMovieId: string | null
+): ActionState<SwipeResult> {
+  switch (gate) {
+    case "missing":
+      return { isSuccess: false, message: "Session not found" }
+    case "not-member":
+      return { isSuccess: false, message: "You are not part of this session" }
+    case "completed":
+      // The session is over (someone's swipe made the match, everyone
+      // finished in all mode, or the host ended it): send this person to the
+      // results instead of recording a swipe that could change them
+      return {
+        isSuccess: true,
+        message: "Already matched",
+        data: {
+          matched: true,
+          movieId: matchedMovieId ?? undefined,
+          done: true
+        }
+      }
+    case "closed":
+      return { isSuccess: false, message: "This session isn't taking swipes" }
+    case "reset":
+      return {
+        isSuccess: false,
+        message: "The host reset the session. Start swiping again."
+      }
+    case "not-in-pool":
+      // Swipes on anything else would throw off progress and agreement
+      return { isSuccess: false, message: "That title isn't in this session" }
+  }
+}
+
 export async function swipeMovie(
   sessionId: string,
   movieId: string,
   direction: SwipeDirection
-): Promise<ActionState<{ matched: boolean; movieId?: string; done: boolean }>> {
+): Promise<ActionState<SwipeResult>> {
   try {
     const user = await getAuthenticatedUser()
     if (!user) {
@@ -346,68 +417,48 @@ export async function swipeMovie(
       .where(eq(movieSessions.id, sessionId))
       .limit(1)
 
-    if (!session) {
-      return { isSuccess: false, message: "Session not found" }
-    }
-
-    if (!isSessionMember(session.userIds, userId)) {
-      return { isSuccess: false, message: "You are not part of this session" }
-    }
-
-    // The session is over (someone's swipe made the match, everyone finished
-    // in all mode, or the host ended it): send this person to the results
-    // instead of recording a swipe that could change them
-    if (session.status === "completed") {
-      return {
-        isSuccess: true,
-        message: "Already matched",
-        data: {
-          matched: true,
-          movieId: session.matchedMovieId ?? undefined,
-          done: true
-        }
-      }
-    }
-
-    if (!acceptsSwipes(session.status)) {
-      return { isSuccess: false, message: "This session isn't taking swipes" }
-    }
-
-    // Swipes on anything else would throw off progress and agreement
-    if (!isInPool(parsePool(session.moviePool), movieId)) {
-      return { isSuccess: false, message: "That title isn't in this session" }
-    }
     const swipedId = String(movieId)
+    const validated = {
+      userId,
+      movieId: swipedId,
+      resetVersion: session?.resetVersion ?? 0
+    }
+    const gate = swipeGate(session, validated)
+    if (gate !== "ok") {
+      return refusedSwipe(gate, session?.matchedMovieId ?? null)
+    }
 
-    // Insert swipe
-    await db
-      .insert(swipes)
-      .values({
-        sessionId,
-        userId,
-        movieId: swipedId,
-        direction: swipeDirection
-      })
-      .onConflictDoUpdate({
-        target: [swipes.sessionId, swipes.userId, swipes.movieId],
-        set: {
-          direction: swipeDirection,
-          swipedAt: new Date()
-        }
-      })
+    // Saved with the session row locked, after checking again that no host
+    // reset landed since the read above (see recordSwipe)
+    const recorded = await recordSwipe({
+      sessionId,
+      direction: swipeDirection,
+      ...validated
+    })
+    if (recorded.gate !== "ok") {
+      return refusedSwipe(recorded.gate, recorded.matchedMovieId)
+    }
 
     // First mode: the first title everyone likes ends the session, as before.
     // All mode never matches early; settleSession completes it once everyone
     // has swiped the whole pool.
-    if (parseMatchMode(session.matchMode) === "first") {
-      if (
-        swipeDirection === "right" &&
-        (await checkForMatch(session, swipedId))
-      ) {
+    if (
+      parseMatchMode(session.matchMode) === "first" &&
+      swipeDirection === "right"
+    ) {
+      const match = await checkForMatch(
+        {
+          id: sessionId,
+          userIds: recorded.userIds,
+          poolVersion: recorded.poolVersion
+        },
+        swipedId
+      )
+      if (match.matched) {
         return {
           isSuccess: true,
           message: "Match found!",
-          data: { matched: true, movieId: swipedId, done: false }
+          data: { matched: true, movieId: match.movieId, done: false }
         }
       }
     }
@@ -430,41 +481,39 @@ export async function swipeMovie(
   }
 }
 
+// First mode: if everyone now likes movieId, complete the session with it.
+// completeSession's status and pool_version conditions mean a match can't
+// complete a session that was reset (or already completed) meanwhile.
 async function checkForMatch(
-  session: { id: string; userIds: string[] },
+  session: { id: string; userIds: string[]; poolVersion: number },
   movieId: string
-): Promise<boolean> {
-  // Get all swipes for this movie in this session
+): Promise<ReturnType<typeof firstMatchResult>> {
   const movieSwipes = await db
     .select({ userId: swipes.userId, direction: swipes.direction })
     .from(swipes)
     .where(and(eq(swipes.sessionId, session.id), eq(swipes.movieId, movieId)))
 
-  if (!everyoneLiked(session.userIds, movieSwipes)) return false
+  if (!everyoneLiked(session.userIds, movieSwipes)) return { matched: false }
 
-  // Only the first match counts. The status condition makes this atomic:
-  // if two last swipes land together, Postgres lets one update win and the
-  // other sees status "completed" and updates nothing.
-  const won = await db
-    .update(movieSessions)
-    .set({
-      matchedMovieId: movieId,
-      status: "completed"
-    })
-    .where(
-      and(eq(movieSessions.id, session.id), eq(movieSessions.status, "started"))
-    )
-    .returning({ id: movieSessions.id })
+  const won = await completeSession(session.id, session.poolVersion, {
+    matchedMovieId: movieId,
+    movieIds: [movieId]
+  })
 
-  if (won.length > 0) {
-    await db.insert(matchHistory).values({
-      sessionId: session.id,
-      movieId
-    })
-  }
+  const latest = won
+    ? undefined
+    : (
+        await db
+          .select({
+            status: movieSessions.status,
+            matchedMovieId: movieSessions.matchedMovieId
+          })
+          .from(movieSessions)
+          .where(eq(movieSessions.id, session.id))
+          .limit(1)
+      )[0]
 
-  // Either way the session has a match now, so this swiper goes to it
-  return true
+  return firstMatchResult(movieId, won, latest)
 }
 
 export async function getFriends(): Promise<ActionState<any>> {
@@ -557,7 +606,11 @@ export async function acceptFriendRequest(
   }
 }
 
-export async function getActiveSessions(): Promise<ActionState<any>> {
+// Sessions the user can get back into from /sessions: lobbies and ones that
+// are mid-swipe, newest first
+export async function getActiveSessions(): Promise<
+  ActionState<ActiveSessionSummary[]>
+> {
   try {
     const user = await getAuthenticatedUser()
     if (!user) {
@@ -565,16 +618,30 @@ export async function getActiveSessions(): Promise<ActionState<any>> {
     }
     const userId = user.id
 
-    const sessions = await db
-      .select()
+    const rows = await db
+      .select({
+        id: movieSessions.id,
+        status: movieSessions.status,
+        userIds: movieSessions.userIds,
+        mediaType: movieSessions.mediaType,
+        matchMode: movieSessions.matchMode,
+        createdAt: movieSessions.createdAt
+      })
       .from(movieSessions)
       .where(
         and(
-          eq(movieSessions.status, "active"),
+          inArray(movieSessions.status, ["active", "started"]),
           sql`${userId} = ANY(${movieSessions.userIds})`
         )
       )
       .orderBy(desc(movieSessions.createdAt))
+
+    const sessions: ActiveSessionSummary[] = rows.map(row => ({
+      ...row,
+      status: row.status === "started" ? "started" : "active",
+      mediaType: parseMediaType(row.mediaType),
+      matchMode: parseMatchMode(row.matchMode)
+    }))
 
     return { isSuccess: true, message: "Sessions retrieved", data: sessions }
   } catch (error) {
@@ -614,7 +681,10 @@ export async function getSessionHistory(): Promise<ActionState<any>> {
 // settings; mid-session it also wipes everyone's swipes and bumps
 // reset_version so the others get a "the host reset the session" notice. The
 // pool_version condition makes a racing "Add more" (or a second save) fail
-// cleanly instead of both landing.
+// cleanly instead of both landing. The UPDATE comes first in the transaction,
+// so the session row stays locked through the swipe DELETE: a swipe being
+// saved (recordSwipe holds the row FOR SHARE) either commits before the UPDATE
+// can run, and is deleted, or waits and then sees the new reset_version.
 export async function updateSessionSettings(
   sessionId: string,
   settings: SessionSettingsInput
@@ -708,41 +778,6 @@ export async function updateSessionSettings(
   }
 }
 
-/**
- * @deprecated Use updateSessionSettings. Kept for criteria-dialog.tsx until
- * the shared settings form replaces it; keeps the session's media type and
- * match mode.
- */
-export async function updateSessionPreferences(
-  sessionId: string,
-  preferences: unknown
-): Promise<ActionState<PoolSummary & { reset: boolean }>> {
-  try {
-    const [session] = await db
-      .select({
-        mediaType: movieSessions.mediaType,
-        matchMode: movieSessions.matchMode
-      })
-      .from(movieSessions)
-      .where(eq(movieSessions.id, sessionId))
-      .limit(1)
-
-    if (!session) {
-      return { isSuccess: false, message: "Session not found" }
-    }
-
-    const mediaType = parseMediaType(session.mediaType)
-    return updateSessionSettings(sessionId, {
-      mediaType,
-      matchMode: parseMatchMode(session.matchMode),
-      preferences: normalizePreferences(preferences, mediaType)
-    })
-  } catch (error) {
-    console.error("Error updating session preferences:", error)
-    return { isSuccess: false, message: "Failed to update preferences" }
-  }
-}
-
 // "Add 50 more": everyone finished the pool and nobody agreed. Any member can
 // press it; the pool_version condition lets only one press count.
 export async function addMoreMovies(
@@ -799,20 +834,36 @@ export async function addMoreMovies(
     }
 
     const mediaType = parseMediaType(session.mediaType)
-    const build = await buildPool({
-      mediaType,
-      preferences: normalizePreferences(session.preferences, mediaType),
-      memberIds: session.userIds,
-      exclude: pool
-    })
+    // A thrown build (TMDb down) or a watchlist that didn't load is a failure
+    // worth retrying, not the end of the titles
+    let build: PoolBuild | null = null
+    try {
+      build = await buildPool({
+        mediaType,
+        preferences: normalizePreferences(session.preferences, mediaType),
+        memberIds: session.userIds,
+        exclude: pool
+      })
+    } catch (error) {
+      console.error("Error building more titles:", error)
+    }
     const next =
-      "error" in build ? { pool, added: 0 } : appendBatch(pool, build.ids)
+      build && !("error" in build)
+        ? appendBatch(pool, build.ids)
+        : { pool, added: 0 }
 
     if (next.added === 0) {
+      const reason = emptyBatchReason({
+        threw: build === null,
+        failedSources: build && !("error" in build) ? build.failed.length : 0
+      })
       return {
         isSuccess: true,
-        message: "No more titles match",
-        data: { added: 0, reason: "exhausted" }
+        message:
+          reason === "failed"
+            ? "Couldn't load more titles. Try again."
+            : "No more titles match",
+        data: { added: 0, reason }
       }
     }
 
@@ -1012,12 +1063,11 @@ export async function getRecentMatches(limit = 8): Promise<
       .orderBy(desc(matchHistory.matchedAt))
       .limit(recentMatchesLimit(limit))
 
-    const movieService = new MovieService()
     const matches = await Promise.all(
       rows.map(async row => {
         const mediaType = parseMediaType(row.mediaType)
         try {
-          const title = await movieService.getEnrichedTitle(
+          const title = await getEnrichedTitle(
             mediaType,
             Number(row.matchedMovieId)
           )

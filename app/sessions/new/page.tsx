@@ -26,7 +26,7 @@ export default function NewSessionPage() {
   const handleCreateSession = async (settings: SessionSettings) => {
     setSubmitting(true)
     try {
-      const result = await createMovieSession([], settings)
+      const result = await createMovieSession(settings)
 
       if (!result.isSuccess || !result.data) {
         // An empty pool comes back as a message saying what to loosen

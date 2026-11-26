@@ -28,6 +28,7 @@ import {
   switchMediaType,
   toggleIn,
   toSettings,
+  usableSources,
   yearPresetLabel,
   type SessionSettings,
   type SettingsFormState
@@ -99,7 +100,7 @@ export function SessionSettingsForm({
         setOptions(loaded)
         setState(prev => ({
           ...prev,
-          sources: initialSourceKeys(prev.sources, available)
+          sources: initialSourceKeys(prev.sources, available, prev.mediaType)
         }))
       })
     return () => {
@@ -113,9 +114,9 @@ export function SessionSettingsForm({
   const copy = mediaCopy(state.mediaType)
   const settings = toSettings(state)
   const watchlistMode = Boolean(sessionId) && state.poolMode === "watchlists"
-  const noSources =
-    settings.preferences.mode === "watchlists" &&
-    settings.preferences.sources.length === 0
+  // Only lists this media type can use count (Letterboxd ticks are kept for
+  // movies but don't help a TV session)
+  const noSources = usableSources(state).length === 0
   const canSubmit =
     !submitting && (!watchlistMode || (options !== null && !noSources))
 

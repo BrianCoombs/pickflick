@@ -9,6 +9,7 @@ import {
   type NextStep,
   type SwipeRow
 } from "./progress"
+import { acceptsSwipes, isSessionMember } from "./rules"
 
 // movie_sessions.movie_pool is untyped jsonb. Read it as positive whole TMDb
 // ids, in order; anything else is dropped.
@@ -89,4 +90,69 @@ export function settingsChange(status: string): {
 // A pool smaller than one batch: the client says "Only N titles match"
 export function isShortPool(size: number, target = BATCH_SIZE): boolean {
   return size < target
+}
+
+export type SwipeGate =
+  | "ok"
+  | "missing"
+  | "not-member"
+  | "completed" // send the swiper to the results
+  | "closed" // lobby, expired: not taking swipes
+  | "reset" // the host reset the session after this swipe was validated
+  | "not-in-pool"
+
+// Whether a swipe may be saved. swipeMovie runs it once on a plain read, then
+// again inside the insert transaction on the row locked FOR SHARE, with the
+// reset_version from the first read: a host reset that landed in between
+// bumps reset_version, so the swipe is refused instead of surviving the
+// reset. The pool is checked against the locked row, so a pool that grew
+// ("Add more", no reset) still accepts the swipe.
+export function swipeGate(
+  session:
+    | {
+        status: string
+        userIds: string[]
+        moviePool: unknown
+        resetVersion: number
+      }
+    | undefined,
+  swipe: { userId: string; movieId: string; resetVersion: number }
+): SwipeGate {
+  if (!session) return "missing"
+  if (!isSessionMember(session.userIds, swipe.userId)) return "not-member"
+  if (session.status === "completed") return "completed"
+  if (!acceptsSwipes(session.status)) return "closed"
+  if (session.resetVersion !== swipe.resetVersion) return "reset"
+  if (!isInPool(parsePool(session.moviePool), swipe.movieId)) {
+    return "not-in-pool"
+  }
+  return "ok"
+}
+
+// First mode, after a swipe made everyone like `movieId` and tried to
+// complete the session. Winning reports this title; losing to another
+// completion reports the session's real match; losing because the pool
+// changed (a reset) is no match.
+export function firstMatchResult(
+  movieId: string,
+  won: boolean,
+  latest: { status: string; matchedMovieId: string | null } | undefined
+): { matched: true; movieId: string | undefined } | { matched: false } {
+  if (won) return { matched: true, movieId }
+  if (latest?.status === "completed") {
+    return { matched: true, movieId: latest.matchedMovieId ?? undefined }
+  }
+  return { matched: false }
+}
+
+// "Add more" found nothing new: say whether that's because a fetch failed
+// (worth trying again) or the filters/watchlists genuinely ran out
+export function emptyBatchReason({
+  failedSources,
+  threw
+}: {
+  failedSources: number
+  threw: boolean
+}): "failed" | "exhausted" {
+  return threw || failedSources > 0 ? "failed" : "exhausted"
 }

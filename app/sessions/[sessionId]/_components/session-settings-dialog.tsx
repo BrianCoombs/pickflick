@@ -161,7 +161,7 @@ export function SessionSettingsDialog({
             </Button>
           )}
         </DialogTrigger>
-        <DialogContent className="max-h-[90vh] overflow-y-auto overscroll-contain pb-0 sm:max-w-[480px] sm:pb-0">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto overscroll-contain pb-0 sm:max-w-[480px] sm:pb-0">
           <DialogHeader className="pr-6 text-left">
             <DialogTitle>Session settings</DialogTitle>
             <DialogDescription>

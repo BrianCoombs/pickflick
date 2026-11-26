@@ -21,11 +21,7 @@ test("movie copy matches today's app", () => {
     outOf: "Out of movies",
     noneMatched: "No movies matched. Try different genres or watchlists.",
     kindLabel: "Movie",
-    chooseButton: "Choose Movies",
-    changeButton: "Change movies",
-    updateTitle: "Update Movie Criteria",
     readyToast: "Movies ready",
-    newSessionHeading: "What kind of movie?",
     pickerBlurb: "The pool mixes every movie on the lists you tick.",
     yearLabel: "Year Range",
     toggle: "Movies"

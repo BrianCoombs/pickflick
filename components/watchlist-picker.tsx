@@ -1,5 +1,6 @@
 "use client"
 
+import { useId } from "react"
 import Link from "next/link"
 import type { WatchlistOption } from "@/actions/db/watchlist-actions"
 import { ToggleChip } from "@/components/store/toggle-chip"
@@ -9,8 +10,6 @@ import { allowedSourceTypes } from "@/lib/titles/sources"
 import type { MediaType } from "@/lib/titles/title"
 
 const SOURCE_LABELS = { trakt: "Trakt", letterboxd: "Letterboxd" } as const
-
-export { sourceKey }
 
 interface WatchlistPickerProps {
   options: WatchlistOption[]
@@ -27,11 +26,12 @@ export function WatchlistPicker({
 }: WatchlistPickerProps) {
   // Letterboxd only lists films, so it's hidden for TV
   const allowed = allowedSourceTypes(mediaType)
+  const headingId = useId()
 
   return (
-    <section aria-labelledby="watchlists-heading" className="space-y-3">
+    <section aria-labelledby={headingId} className="space-y-3">
       <h3
-        id="watchlists-heading"
+        id={headingId}
         className="font-display text-store-navy text-sm uppercase"
       >
         Whose watchlists?

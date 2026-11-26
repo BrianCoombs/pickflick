@@ -11,6 +11,7 @@ import {
   switchMediaType,
   toggleIn,
   toSettings,
+  usableSources,
   yearPresetLabel
 } from "./settings-form"
 
@@ -93,12 +94,31 @@ test("switching media type clears genres and keeps the rest", () => {
   assert.equal(next.minRating, 7)
 })
 
-test("switching to TV drops Letterboxd picks", () => {
+test("switching to TV keeps Letterboxd picks for the way back", () => {
   const state = {
     ...initialFormState(movieDefaults),
     sources: ["u1:trakt", "u1:letterboxd", "u2:letterboxd"]
   }
-  assert.deepEqual(switchMediaType(state, "tv").sources, ["u1:trakt"])
+  const tv = switchMediaType(state, "tv")
+  assert.deepEqual(usableSources(tv), ["u1:trakt"])
+  assert.deepEqual(switchMediaType(tv, "movie").sources, [
+    "u1:trakt",
+    "u1:letterboxd",
+    "u2:letterboxd"
+  ])
+})
+
+test("usable sources only count lists the media type can use", () => {
+  const state = {
+    ...initialFormState({ ...movieDefaults, mediaType: "tv" }),
+    poolMode: "watchlists" as const,
+    sources: ["u1:letterboxd"]
+  }
+  assert.deepEqual(usableSources(state), [])
+  assert.deepEqual(toSettings(state).preferences, {
+    mode: "watchlists",
+    sources: []
+  })
 })
 
 test("switching to the same media type changes nothing", () => {
@@ -200,19 +220,36 @@ test("source keys round-trip", () => {
 
 test("initial sources keep earlier picks that are still available", () => {
   assert.deepEqual(
-    initialSourceKeys(["u1:trakt", "gone:trakt"], ["u1:trakt", "u2:trakt"]),
+    initialSourceKeys(
+      ["u1:trakt", "gone:trakt"],
+      ["u1:trakt", "u2:trakt"],
+      "movie"
+    ),
     ["u1:trakt"]
   )
 })
 
 test("with no earlier picks, every available list is ticked", () => {
-  assert.deepEqual(initialSourceKeys([], ["u1:trakt", "u2:trakt"]), [
+  assert.deepEqual(initialSourceKeys([], ["u1:trakt", "u2:trakt"], "movie"), [
     "u1:trakt",
     "u2:trakt"
   ])
-  assert.deepEqual(initialSourceKeys(["gone:trakt"], ["u1:trakt"]), [
+  assert.deepEqual(initialSourceKeys(["gone:trakt"], ["u1:trakt"], "movie"), [
     "u1:trakt"
   ])
+})
+
+test("TV never ticks Letterboxd lists by default", () => {
+  assert.deepEqual(initialSourceKeys([], ["u1:trakt", "u1:letterboxd"], "tv"), [
+    "u1:trakt"
+  ])
+})
+
+test("earlier picks the media type can't use don't stop the defaults", () => {
+  assert.deepEqual(
+    initialSourceKeys(["u1:letterboxd"], ["u1:letterboxd", "u2:trakt"], "tv"),
+    ["u1:letterboxd", "u2:trakt"]
+  )
 })
 
 // toggleIn

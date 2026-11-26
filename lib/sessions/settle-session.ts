@@ -10,7 +10,14 @@ import { and, eq } from "drizzle-orm"
 import { db } from "@/db/db"
 import { matchHistory, movieSessions, swipes } from "@/db/schema"
 import { parseMatchMode, type MemberProgress, type NextStep } from "./progress"
-import { parsePool, settleDecision, type Completion } from "./settle"
+import type { SwipeDirection } from "./rules"
+import {
+  parsePool,
+  settleDecision,
+  swipeGate,
+  type Completion,
+  type SwipeGate
+} from "./settle"
 
 export interface SettleResult {
   status: string
@@ -56,6 +63,63 @@ export async function completeSession(
         .onConflictDoNothing()
     }
     return true
+  })
+}
+
+export type RecordedSwipe =
+  | { gate: "ok"; poolVersion: number; userIds: string[] }
+  | { gate: Exclude<SwipeGate, "ok">; matchedMovieId: string | null }
+
+// Saves a swipe, unless the session moved on since the caller validated it.
+// The session row is locked FOR SHARE for the whole transaction, which
+// conflicts with the row lock updateSessionSettings' UPDATE takes (held until
+// its swipe DELETE commits). So either the reset commits first and this
+// re-read sees the new reset_version and refuses, or this insert commits
+// first and the reset's DELETE removes it. Swipes don't block each other.
+export async function recordSwipe(swipe: {
+  sessionId: string
+  userId: string
+  movieId: string
+  direction: SwipeDirection
+  resetVersion: number // as validated before the transaction
+}): Promise<RecordedSwipe> {
+  return db.transaction(async tx => {
+    const [session] = await tx
+      .select({
+        status: movieSessions.status,
+        userIds: movieSessions.userIds,
+        moviePool: movieSessions.moviePool,
+        poolVersion: movieSessions.poolVersion,
+        resetVersion: movieSessions.resetVersion,
+        matchedMovieId: movieSessions.matchedMovieId
+      })
+      .from(movieSessions)
+      .where(eq(movieSessions.id, swipe.sessionId))
+      .for("share")
+
+    const gate = swipeGate(session, swipe)
+    if (gate !== "ok") {
+      return { gate, matchedMovieId: session?.matchedMovieId ?? null }
+    }
+
+    await tx
+      .insert(swipes)
+      .values({
+        sessionId: swipe.sessionId,
+        userId: swipe.userId,
+        movieId: swipe.movieId,
+        direction: swipe.direction
+      })
+      .onConflictDoUpdate({
+        target: [swipes.sessionId, swipes.userId, swipes.movieId],
+        set: { direction: swipe.direction, swipedAt: new Date() }
+      })
+
+    return {
+      gate,
+      poolVersion: session.poolVersion,
+      userIds: session.userIds
+    }
   })
 }
 

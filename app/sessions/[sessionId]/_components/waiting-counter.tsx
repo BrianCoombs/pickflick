@@ -38,6 +38,7 @@ interface WaitingCounterProps {
   progress: { userId: string; remaining: number }[]
   nextStep: NextStep | null
   poolSize: number
+  goToResults: () => void
 }
 
 // Shown once you've swiped every title in the pool: who's still going, and
@@ -50,7 +51,8 @@ export function WaitingCounter({
   people,
   progress,
   nextStep,
-  poolSize
+  poolSize,
+  goToResults
 }: WaitingCounterProps) {
   const router = useRouter()
   const copy = mediaCopy(mediaType)
@@ -107,6 +109,12 @@ export function WaitingCounter({
             title: "Already restocked",
             description: `Someone else just added more ${copy.plural}.`
           })
+        } else if (data.reason === "failed") {
+          toast({
+            title: "Couldn't restock",
+            description: `Loading more ${copy.plural} failed. Try again in a moment.`,
+            variant: "destructive"
+          })
         } else {
           toast({
             title: "Can't add more now",
@@ -144,8 +152,8 @@ export function WaitingCounter({
         setEnding(false)
         return
       }
-      // page.tsx sends a completed session to its results
-      router.refresh()
+      // Shared with the poll, so only one of them navigates
+      goToResults()
     } catch {
       toast({
         title: "Error",
