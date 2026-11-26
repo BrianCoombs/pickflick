@@ -4,6 +4,7 @@ import {
   acceptsSwipes,
   everyoneLiked,
   isSessionMember,
+  joinDecision,
   parseSwipeDirection,
   recentMatchesLimit
 } from "./rules"
@@ -93,4 +94,21 @@ test("swipes are only taken while the session is in its swiping phase", () => {
   // Matched: the movie is picked, late swipes must not pick another
   assert.equal(acceptsSwipes("completed"), false)
   assert.equal(acceptsSwipes("expired"), false)
+})
+
+test("members can rejoin whatever the status", () => {
+  assert.equal(joinDecision("active", true), "rejoin")
+  assert.equal(joinDecision("started", true), "rejoin")
+  assert.equal(joinDecision("completed", true), "rejoin")
+})
+
+test("newcomers can only join from the lobby", () => {
+  assert.equal(joinDecision("active", false), "join")
+  assert.equal(joinDecision("started", false), "closed")
+  assert.equal(joinDecision("completed", false), "closed")
+})
+
+test("an unknown status is closed to everyone", () => {
+  assert.equal(joinDecision("expired", true), "closed")
+  assert.equal(joinDecision("expired", false), "closed")
 })

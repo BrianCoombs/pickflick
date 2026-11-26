@@ -1,0 +1,217 @@
+{
+  "id": 42009,
+  "name": "Black Mirror",
+  "original_name": "Black Mirror",
+  "overview": "Twisted tales run wild in this mind-bending anthology series that reveals humanity's worst traits, greatest innovations and more.",
+  "poster_path": "/seN6rRfN0I6n8iDXjlSMk1QjNcq.jpg",
+  "backdrop_path": "/dg3OindVAGZBjlT3xYKqIAdukPL.jpg",
+  "first_air_date": "2011-12-04",
+  "genres": [
+    {
+      "id": 10765,
+      "name": "Sci-Fi & Fantasy"
+    },
+    {
+      "id": 18,
+      "name": "Drama"
+    },
+    {
+      "id": 9648,
+      "name": "Mystery"
+    }
+  ],
+  "vote_average": 8.294,
+  "vote_count": 6735,
+  "episode_run_time": [],
+  "last_episode_to_air": {
+    "air_date": "2025-04-10",
+    "season_number": 7,
+    "episode_number": 6,
+    "runtime": 91
+  },
+  "number_of_seasons": 7,
+  "number_of_episodes": 33,
+  "tagline": "The future is bright.",
+  "status": "Returning Series",
+  "origin_country": ["GB"],
+  "videos": {
+    "results": [
+      {
+        "iso_639_1": "en",
+        "name": "Paul Giamatti & Charlie Brooker Dive Deep into Black Mirror's \"Eulogy\" | Netflix",
+        "key": "Z8-t3wXwXuY",
+        "site": "YouTube",
+        "type": "Featurette",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Black Mirror: Season 7 | Behind the Scenes & Easter Eggs Revealed | Netflix",
+        "key": "z0kRL2yzUtI",
+        "site": "YouTube",
+        "type": "Behind the Scenes",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Black Mirror: Season 7 | USS Callister: Into Infinity - Cast Set Tour | Netflix",
+        "key": "Lz-xX3KjrDs",
+        "site": "YouTube",
+        "type": "Behind the Scenes",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Season 7 Official Trailer",
+        "key": "1iqra1ojEvM",
+        "site": "YouTube",
+        "type": "Trailer",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Paapa Essiedu Takes Us Behind The Scenes of Demon 79 | Black Mirror | Netflix",
+        "key": "fs8kH5jRJgY",
+        "site": "YouTube",
+        "type": "Behind the Scenes",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "On The Set of Joan Is Awful with Annie Murphy and Salma Hayek Pinault",
+        "key": "XRnGGh2iLnk",
+        "site": "YouTube",
+        "type": "Behind the Scenes",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Annie Murphy Breaks Down THAT Scene From Joan Is Awful | Black Mirror | Netflix",
+        "key": "RDIO7zeybaM",
+        "site": "YouTube",
+        "type": "Featurette",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Behind Black Mirror Season 5: Striking Vipers | Netflix",
+        "key": "0E3cC8iMtn0",
+        "site": "YouTube",
+        "type": "Featurette",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Black Mirror : Bandersnatch | Featurette: Consumer [HD] | Netflix",
+        "key": "tSztFa2bs7M",
+        "site": "YouTube",
+        "type": "Featurette",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Black Mirror | Featurette: U.S.S. Callister | Netflix",
+        "key": "wnW7WnRw5jk",
+        "site": "YouTube",
+        "type": "Featurette",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Black Mirror | Featurette: Metalhead | Netflix",
+        "key": "xpbRBTVVAwc",
+        "site": "YouTube",
+        "type": "Featurette",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Black Mirror | Featurette: Arkangel | Netflix",
+        "key": "zokY330yTFg",
+        "site": "YouTube",
+        "type": "Featurette",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Welcome to the Darkness Trailer",
+        "key": "di6emt8_ie8",
+        "site": "YouTube",
+        "type": "Trailer",
+        "official": true
+      },
+      {
+        "iso_639_1": "en",
+        "name": "Black Mirror | Featurette: Cracking Black Mirror [HD] | Netflix",
+        "key": "oxwLn_d1NMM",
+        "site": "YouTube",
+        "type": "Featurette",
+        "official": true
+      }
+    ]
+  },
+  "watch/providers": {
+    "results": {
+      "US": {
+        "flatrate": [
+          {
+            "logo_path": "/rK1KljqmbvO9HQa1PBFLILWah72.png",
+            "provider_id": 8,
+            "provider_name": "Netflix",
+            "display_priority": 3
+          },
+          {
+            "logo_path": "/eGUwOOIxcazwEBxqJpSN5sWEu6V.png",
+            "provider_id": 1796,
+            "provider_name": "Netflix Standard with Ads",
+            "display_priority": 155
+          }
+        ],
+        "buy": [
+          {
+            "logo_path": "/jn6TLbtaTZntTRX9UYucHJvpQx1.png",
+            "provider_id": 10,
+            "provider_name": "Amazon Video",
+            "display_priority": 12
+          },
+          {
+            "logo_path": "/qdEGArH3lKfFnAtYXMkSYk5wxuG.png",
+            "provider_id": 2,
+            "provider_name": "Apple TV Store",
+            "display_priority": 13
+          }
+        ]
+      },
+      "GB": {
+        "flatrate": [
+          {
+            "logo_path": "/rK1KljqmbvO9HQa1PBFLILWah72.png",
+            "provider_id": 8,
+            "provider_name": "Netflix",
+            "display_priority": 1
+          },
+          {
+            "logo_path": "/eGUwOOIxcazwEBxqJpSN5sWEu6V.png",
+            "provider_id": 1796,
+            "provider_name": "Netflix Standard with Ads",
+            "display_priority": 87
+          }
+        ],
+        "buy": [
+          {
+            "logo_path": "/qdEGArH3lKfFnAtYXMkSYk5wxuG.png",
+            "provider_id": 2,
+            "provider_name": "Apple TV Store",
+            "display_priority": 7
+          },
+          {
+            "logo_path": "/jn6TLbtaTZntTRX9UYucHJvpQx1.png",
+            "provider_id": 10,
+            "provider_name": "Amazon Video",
+            "display_priority": 11
+          }
+        ]
+      }
+    }
+  }
+}

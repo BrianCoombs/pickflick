@@ -22,6 +22,7 @@ export const MOVIE_GENRES = [
 
 export const YEAR_RANGES = [
   { label: "All years", value: null },
+  { label: "2020s", value: { min: 2020, max: new Date().getFullYear() } },
   { label: "2020 - 2025", value: { min: 2020, max: 2025 } },
   { label: "2015 - 2019", value: { min: 2015, max: 2019 } },
   { label: "2010 - 2014", value: { min: 2010, max: 2014 } },
@@ -35,3 +36,15 @@ export const YEAR_RANGES = [
 export const DEFAULT_MIN_RATING = 6
 export const DEFAULT_MIN_YEAR = 1990
 export const DEFAULT_MAX_YEAR = new Date().getFullYear()
+
+// Minimum rating choices: Any (0), 6+, 7+, 8+
+export const RATING_STEPS = [0, 6, 7, 8] as const
+export type RatingStep = (typeof RATING_STEPS)[number]
+
+// Minimum TMDb vote count behind each rating step, so a 9.0 from three
+// votes doesn't make the pool. Not shown to users.
+export function voteFloor(minRating: number): number {
+  if (minRating >= 8) return 200
+  if (minRating >= 7) return 100
+  return 50
+}

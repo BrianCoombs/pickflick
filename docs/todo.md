@@ -14,6 +14,7 @@ Work happens on branch `feat/swipe-upgrades`. Nothing merges to `main` or touche
   - `media_type` is `movie` or `tv`.
   - `match_mode` is `first` or `all`.
   - `pool_version` is a number that goes up each time the pool changes.
+  - `reset_version` is a number that goes up only when the host resets mid-session.
   - `match_history` gets a unique key on session + movie.
   - Every column has a default, so existing sessions keep working unchanged.
 - **One title type for movies and shows.** Everything on screen reads a single `Title` type that covers both. The card's length line shows "1h 52m" for movies and "5 seasons · 62 episodes" for TV.
@@ -31,6 +32,15 @@ Work happens on branch `feat/swipe-upgrades`. Nothing merges to `main` or touche
   - Only one press counts.
   - The pool can grow to 500 at most.
 - **Read-only "Rental terms" panel.** Lists the session's settings, shown to everyone in the lobby and from the swipe screen.
+- **Session settings button (host).**
+  - Replaces "Choose movies" / "Change movies" in the lobby and on the swipe screen.
+  - One dialog changes everything: Movies or TV, the match mode, and the filters or watchlists.
+  - The new-session page uses the same form.
+  - Media type and match mode can change after creation.
+  - In the lobby, saving just rebuilds the pool.
+  - Mid-session, saving first asks the host to confirm: "This resets everyone's swipes." It then rebuilds the pool, deletes all swipes, and bumps `pool_version` and `reset_version`.
+  - Everyone else gets a notice when `reset_version` goes up: "The host changed the settings and reset the session. Start swiping again." The host doesn't see it.
+  - Non-hosts see the read-only Rental terms instead of the button.
 - **Progress comes from saved swipes.** Refreshing or rejoining puts you on your first unswiped card, and this still works after the pool grows.
 
 ## Fixes found while planning
@@ -46,28 +56,29 @@ Work happens on branch `feat/swipe-upgrades`. Nothing merges to `main` or touche
 ## Steps
 
 ### Phase 1: foundation (blocks everything else)
-- [ ] 1. `lib/titles/*`: Title type, normalizers, `yearOf`, `titleLengthLabel`, `formatSeasonsEpisodes`, TV genres, copy, with tests
-- [ ] 2. Schema columns and the `0002` migration file (generated, not applied)
-- [ ] 3. `lib/sessions/preferences.ts` (`normalizePreferences`, `describePreferences`), provider constants, `buildDiscoverParams`, `buildBalancedPool`, with tests
-- [ ] 4. `lib/sessions/progress.ts` (`nextCard`, `memberProgress`, `everyoneDone`, `agreedTitles`, `nextStep`, `canAddMore`, `appendBatch`) and `joinDecision`, with tests
+- [x] 1. `lib/titles/*`: Title type, normalizers, `yearOf`, `titleLengthLabel`, `formatSeasonsEpisodes`, TV genres, copy, with tests
+- [x] 2. Schema columns and the `0002` migration file (generated, not applied)
+- [x] 3. `lib/sessions/preferences.ts` (`normalizePreferences`, `describePreferences`), provider constants, `buildDiscoverParams`, `buildBalancedPool`, with tests
+- [x] 4. `lib/sessions/progress.ts` (`nextCard`, `memberProgress`, `everyoneDone`, `agreedTitles`, `nextStep`, `canAddMore`, `appendBatch`) and `joinDecision`, with tests
 
 ### Phase 2: server
 - [ ] 5. `tmdb.getTitle` / `discover`, `getEnrichedTitle`, `getTitlePool({ mediaType, prefs, size, exclude })`, watchlist pools with `mediaType` and `exclude`, Trakt shows
 - [ ] 6. Actions:
   - `createMovieSession` takes the media type and match mode.
-  - `updateSessionPreferences` is host-only and bumps the pool version.
+  - `updateSessionPreferences` becomes `updateSessionSettings({ mediaType, matchMode, preferences })`. It is host-only, works while the session is active or started, and bumps `reset_version` when started.
   - `swipeMovie` checks the pool and handles all mode.
   - New `settleSession`, `addMoreMovies` and `endSessionNow`.
   - `joinMovieSession` lets members rejoin.
-- [ ] 7. The participants poll returns `poolVersion` and progress; the hook refreshes when it changes
+- [ ] 7. The participants poll returns `poolVersion`, `resetVersion` and progress. The hook refreshes when either changes and flags a reset for non-hosts.
 
 ### Phase 3: screens (parallel, separate files)
 - [ ] 8. Swipe card: `Title`, length line, "Back of the box" sheet for the full description, resume from saved swipes, remount on pool change
-- [ ] 9. New session page and filter form:
+- [ ] 9. Shared session settings form, used on the new-session page and in the host's Session settings dialog:
   - Movies / TV toggle and the "When do we stop?" choice.
+  - A reset confirmation when saving mid-session.
   - Genre, provider and rating chips.
   - "Only N match" message.
-- [ ] 10. Waiting counter (replaces "Out of movies"), Add 50 more, host's End now, all-matches results page, Rental terms panel and settings sheet
+- [ ] 10. Reset notice for participants, waiting counter (replaces "Out of movies"), Add 50 more, host's End now, all-matches results page, Rental terms panel and settings sheet
 
 ### Phase 4: check
 - [ ] 11. Unit tests, `tsc`, lint, and a code review of the whole branch

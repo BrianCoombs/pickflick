@@ -253,3 +253,23 @@ Replaces the "Out of movies" branch in swipe-interface.tsx (decision 6).
 - app/sessions/[sessionId]/match/page.tsx
 - app/api/sessions/[sessionId]/participants/route.ts
 - hooks/use-session-participants.tsx
+
+
+## Addendum (2026-11-25, from Brian): one Session settings button, resets mid-session
+- **The button.** "Choose movies" / "Change movies" becomes a host-only **Session settings** button, in the lobby and on the swipe screen. It opens one dialog that can change every setting:
+  - media type
+  - match mode
+  - filters or watchlists
+  This overrides "fixed at creation" above. The new-session page and the dialog share one form component.
+- **Server.** `updateSessionSettings(sessionId, { mediaType, matchMode, preferences })` replaces `updateSessionPreferences`. It:
+  - is host only, and works while the session is active or started;
+  - normalizes the preferences for the new media type and rebuilds the pool with `getTitlePool` or `buildPoolFromWatchlists` (an empty pool is an error and nothing is saved);
+  - deletes all swipes;
+  - does a conditional update that bumps `pool_version`, and `reset_version` too when the status is started.
+- **Confirmation.** Mid-session, the client asks the host first, in an AlertDialog: "Reset everyone's swipes? Saving new settings starts the session over for everyone."
+- **Participants.**
+  - The poll returns `resetVersion`.
+  - The hook keeps the last value it saw. When the value goes up and the viewer isn't the host, it shows a notice (an AlertDialog or a banner in the store look): "The host changed the settings and reset the session. Start swiping again."
+  - The Swiper remounts at 1/N, because it is keyed by `poolVersion`.
+  - A participant who loads the page after the reset sees no notice, because the hook starts from the server's current value.
+- **Non-hosts** never see the button. They get the read-only Rental terms sheet instead.
