@@ -86,8 +86,8 @@ Work happens on branch `feat/swipe-upgrades`. Nothing merges to `main` or touche
 - [x] 10. "How it works" in the lobby and behind a "?" on the swipe screen, the agreed-so-far chip and sheet, reset notice for participants, waiting counter (replaces "Out of movies"), Add 50 more, host's End now, all-matches results page, Rental terms panel and settings sheet
 
 ### Phase 4: check
-- [ ] 11. Unit tests, `tsc`, lint, and a code review of the whole branch
-- [ ] 12. Run locally at phone size against a dev database branch (not production):
+- [x] 11. Unit tests, `tsc`, lint, and a code review of the whole branch
+- [x] 12. Run locally at phone size against a dev database branch (not production):
   - first mode is unchanged
   - all mode ends with a list of matches
   - zero matches, then add more
@@ -99,4 +99,49 @@ Work happens on branch `feat/swipe-upgrades`. Nothing merges to `main` or touche
 
 ## Review
 
-(Filled in after the work.)
+Built by subagents in four phases. Each phase was planned first; the files are in `docs/superpowers/plans/`, and `2026-11-25-phase3-contracts.md` holds the screen contracts.
+
+### What changed
+- **Foundation (`lib/`):**
+  - `lib/titles` gives one `Title` shape for movies and TV, with the "1h 52m" and "N seasons · N episodes" labels, TV genres and copy for each media type.
+  - `lib/sessions/preferences` reads filter preferences, including the shapes saved by old sessions.
+  - `lib/api` builds genre-balanced pools with TMDb discover.
+  - `lib/sessions/progress` and `settle` decide the next card, who's done, what's agreed, whether "add more" is allowed and how a session completes.
+- **Migration `0002`:** adds `media_type`, `match_mode`, `pool_version`, `reset_version`, and a unique match per session. It only adds things. It is not applied to production yet.
+- **Server:**
+  - **Settings:** `updateSessionSettings` (host only) replaces the old criteria action. Mid-session it rebuilds the pool, clears swipes and bumps both versions.
+  - **Swiping:** swipes lock the session row and are refused after a reset. First-match and all-matches completion both go through one versioned `completeSession`.
+  - **New actions:** `addMoreMovies`, `endSessionNow`, and rejoining.
+  - **Poll:** reports progress, agreed-so-far and the versions.
+- **Screens:**
+  - **Swipe card:** resumes from saved swipes, shows the length line, the "Back of the box" sheet and BOX SET for TV.
+  - **Status bar:** agreed so far, the "?" button, and Session settings for the host or Rental terms for everyone else.
+  - **Other screens:** the waiting counter with Add 50 more / End now, the reset notice, the all-matches results, a lobby with How it works and Rental terms, one settings form for new sessions and the host's dialog, and started sessions listed on /sessions.
+
+### Concepts used
+- **Optimistic concurrency.** Every change to the pool bumps `pool_version`. Completing a session, adding more, or resetting only succeeds if the version it read is still current (`UPDATE … WHERE pool_version = v`). If two people press Add 50 more, exactly one wins.
+- **Row lock.** A swipe takes a shared lock on the session row (`FOR SHARE`). The host's reset takes a conflicting lock, so a swipe can't land in the middle of a reset.
+- **Keyed remount.** In React, changing a component's `key` throws away its state. The deck is keyed so that a new pool gives everyone a fresh deck.
+- **Derived progress.** There's no stored "current card"; it's worked out from the saved swipes. That makes refresh and rejoin work for free.
+
+### Checked
+- 269 unit tests pass, `tsc` and eslint are clean, and `next build` passes.
+- Two independent reviewers (server and screens) went over the branch. Their findings were fixed in `ca6f75e`, including:
+  - a title that failed to load could strand a session
+  - reset races
+  - `createMovieSession` accepted other users' ids
+  - a redirect loop
+  - dead code
+- **Local run** at phone size (390px) in Chrome, signed in as Brian, against a local Postgres with all migrations applied. A second member was simulated in SQL.
+  - All-matches mode: agreed-so-far went 0→2→3, resume after refresh landed on card 5, and the last swipe went to the results page (3 agreed, sorted by rating).
+  - TV first-match mode: the BOX SET card, the waiting counter, then Add 50 more → 51/100.
+  - The non-host sees only ? and Rental terms. The reset notice appears for the non-host.
+  - Host Session settings mid-session: the confirm appears, then the session switches to Movies/all with a new pool and swipes cleared.
+  - Fixed during the run: the card's length line was cut off at phone width, so "Back of the box" moved onto the title row.
+- **Production (read-only):** `match_history` has no duplicate rows, so the unique constraint in `0002` will apply.
+
+### Not done or not verified
+- No real two-phone session yet: the second member was simulated in the database.
+- The Trakt shows watchlist shape comes from Trakt's docs and hasn't been checked against a real account.
+- The new-session page still offers watchlists only once friends join (the same as before).
+- A title that fails to load shows as a placeholder card ("Tape #id").

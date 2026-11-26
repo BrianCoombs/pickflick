@@ -455,25 +455,28 @@ function Swiper({
       </div>
 
       {/* Outside the draggable case, so the link never starts a drag */}
-      <div className="px-6 pt-3 text-xs leading-snug">
-        <div className="font-display text-store-yellow truncate text-base">
-          {current.name}
+      <div className="px-6 pt-1 text-xs leading-snug">
+        {/* The link shares the title's row, so the meta line below gets the
+            full width and the length (e.g. "6 seasons · 61 episodes") is
+            never cut off; it wraps instead */}
+        <div className="flex min-h-11 items-center justify-between gap-2">
+          <span className="font-display text-store-yellow min-w-0 truncate text-base">
+            {current.name}
+          </span>
+          {current.overview && (
+            <button
+              type="button"
+              onClick={() => setExpandedKey(current.key)}
+              className="text-store-ink focus-visible:ring-ring min-h-11 shrink-0 whitespace-nowrap font-mono underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2"
+            >
+              Back of the box ▸
+            </button>
+          )}
         </div>
-        {(meta || current.overview) && (
-          <div className="flex min-h-11 items-center justify-between gap-2">
-            <span className="text-store-mist min-w-0 truncate">{meta}</span>
-            {current.overview && (
-              <button
-                type="button"
-                onClick={() => setExpandedKey(current.key)}
-                className="text-store-ink focus-visible:ring-ring min-h-11 shrink-0 whitespace-nowrap font-mono underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2"
-              >
-                Back of the box ▸
-              </button>
-            )}
-          </div>
+        {meta && <div className="text-store-mist">{meta}</div>}
+        {current.overview && (
+          <p className="mt-1 line-clamp-2">{current.overview}</p>
         )}
-        {current.overview && <p className="line-clamp-2">{current.overview}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
